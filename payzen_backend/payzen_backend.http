@@ -1,0 +1,50 @@
+﻿@payzen_backend_HostAddress = http://localhost:5119
+
+###
+# ========== AUTHENTICATION ==========
+
+### Login
+# @name login
+POST {{payzen_backend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "Email": "mohammed@exemple.com",
+  "Password": "12345678"
+}
+
+###
+# ========== ROLES API (Protected) ==========
+
+### GET All Roles - METTEZ LE VRAI TOKEN ICI
+GET {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidW5pcXVlX25hbWUiOiJtb2hhbW1lZCIsInVpZCI6IjUiLCJleHAiOjE3MzY5NjAzMDAsImlzcyI6IlBheXplbkFwaSIsImF1ZCI6IlBheXplbkFwcCJ9.REMPLACEZ_PAR_VOTRE_VRAI_TOKEN
+Accept: application/json
+
+### GET Role by ID
+GET {{payzen_backend_HostAddress}}/api/roles/1
+Authorization: Bearer VOTRE_TOKEN_ICI
+Accept: application/json
+
+### POST Create Role
+POST {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer VOTRE_TOKEN_ICI
+Content-Type: application/json
+
+{
+  "Name": "Administrator",
+  "Description": "Administrateur système avec tous les droits"
+}
+
+### PUT Update Role
+PUT {{payzen_backend_HostAddress}}/api/roles/1
+Authorization: Bearer VOTRE_TOKEN_ICI
+Content-Type: application/json
+
+{
+  "Description": "Description mise à jour"
+}
+
+### DELETE Role
+DELETE {{payzen_backend_HostAddress}}/api/roles/1
+Authorization: Bearer VOTRE_TOKEN_ICI

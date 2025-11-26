@@ -1,0 +1,363 @@
+@payzen_backend_HostAddress = http://localhost:5119
+
+###############################################
+# VARIABLES GLOBALES
+###############################################
+# Stockez le token ici après le login
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidW5pcXVlX25hbWUiOiJtb2hhbW1lZEBleGVtcGxlLmNvbSIsInVpZCI6IjUiLCJlbWFpbCI6Im1vaGFtbWVkQGV4ZW1wbGUuY29tIiwianRpIjoiZDU0YTc2ZTAtNTg4MS00NWFlLWE1NTYtOWZhMTBiOWQ1YjMyIiwiZXhwIjoxNzY0MDg5NjkyLCJpc3MiOiJQYXl6ZW5BcGkiLCJhdWQiOiJQYXl6ZW5BcHAifQ.GAu6JnlV5zvOSIOWP4SxxSnlJtgR9L3ruLV4rBoCgvQ
+
+###############################################
+# 1. AUTHENTICATION
+###############################################
+
+### Login avec email
+# @name login
+POST {{payzen_backend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "Email": "mohammed@exemple.com",
+  "Password": "12345678"
+}
+
+### Logout
+POST {{payzen_backend_HostAddress}}/api/auth/logout
+Authorization: Bearer {{token}}
+
+###############################################
+# 2. USERS - Gestion des utilisateurs
+###############################################
+
+### GET - Récupérer tous les utilisateurs
+GET {{payzen_backend_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET - Récupérer un utilisateur par ID
+GET {{payzen_backend_HostAddress}}/api/users/5
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET - Compter les utilisateurs
+GET {{payzen_backend_HostAddress}}/api/users/count
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### POST - Créer un nouvel utilisateur
+POST {{payzen_backend_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Username": "newuser",
+  "Email": "newuser@exemple.com",
+  "Password": "SecurePass123!"
+}
+
+### PUT - Mettre à jour un utilisateur
+PUT {{payzen_backend_HostAddress}}/api/users/2
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Username": "updateduser",
+  "Email": "updated@exemple.com"
+}
+
+### PUT - Changer le mot de passe
+PUT {{payzen_backend_HostAddress}}/api/users/6
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Password": "NewSecurePassword123!"
+}
+
+### PUT - Désactiver un utilisateur
+PUT {{payzen_backend_HostAddress}}/api/users/6
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "IsActive": false
+}
+
+### DELETE - Supprimer un utilisateur (soft delete)
+DELETE {{payzen_backend_HostAddress}}/api/users/7
+Authorization: Bearer {{token}}
+
+###############################################
+# 3. ROLES - Gestion des rôles
+###############################################
+
+### GET - Récupérer tous les rôles
+GET {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET - Récupérer un rôle par ID
+GET {{payzen_backend_HostAddress}}/api/roles/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET - Compter les rôles
+GET {{payzen_backend_HostAddress}}/api/roles/count
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### POST - Créer un nouveau rôle
+POST {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "Administrator",
+  "Description": "Administrateur système avec tous les droits"
+}
+
+### POST - Créer un rôle Manager
+POST {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "Manager",
+  "Description": "Gestionnaire avec droits limités"
+}
+
+### POST - Créer un rôle User
+POST {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "User",
+  "Description": "Utilisateur standard"
+}
+
+### PUT - Mettre à jour un rôle
+PUT {{payzen_backend_HostAddress}}/api/roles/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "Super Admin",
+  "Description": "Super administrateur avec tous les privilèges"
+}
+
+### DELETE - Supprimer un rôle (soft delete)
+DELETE {{payzen_backend_HostAddress}}/api/roles/3
+Authorization: Bearer {{token}}
+
+###############################################
+# 4. PERMISSIONS - Gestion des permissions
+###############################################
+
+### GET - Récupérer toutes les permissions
+GET {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET - Récupérer une permission par ID
+GET {{payzen_backend_HostAddress}}/api/permissions/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### POST - Créer une permission READ_USERS
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "READ_USERS",
+  "Description": "Lire les informations des utilisateurs"
+}
+
+### POST - Créer une permission WRITE_USERS
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "WRITE_USERS",
+  "Description": "Créer et modifier les utilisateurs"
+}
+
+### POST - Créer une permission DELETE_USERS
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "DELETE_USERS",
+  "Description": "Supprimer des utilisateurs"
+}
+
+### POST - Créer une permission READ_ROLES
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "READ_ROLES",
+  "Description": "Lire les rôles du système"
+}
+
+### POST - Créer une permission WRITE_ROLES
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "WRITE_ROLES",
+  "Description": "Créer et modifier les rôles"
+}
+
+### POST - Créer une permission DELETE_ROLES
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "DELETE_ROLES",
+  "Description": "Supprimer des rôles"
+}
+
+### POST - Créer une permission MANAGE_PERMISSIONS
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "MANAGE_PERMISSIONS",
+  "Description": "Gérer les permissions du système"
+}
+
+### PUT - Mettre à jour une permission
+PUT {{payzen_backend_HostAddress}}/api/permissions/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Description": "Lire toutes les informations des utilisateurs du système"
+}
+
+### DELETE - Supprimer une permission (soft delete)
+DELETE {{payzen_backend_HostAddress}}/api/permissions/7
+Authorization: Bearer {{token}}
+
+###############################################
+# 5. ROLES-PERMISSIONS - Liaison
+###############################################
+
+### GET - Récupérer les permissions d'un rôle
+GET {{payzen_backend_HostAddress}}/api/roles/1/permissions
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### POST - Assigner une permission à un rôle
+# Assigner READ_USERS (id:1) au rôle Admin (id:1)
+POST {{payzen_backend_HostAddress}}/api/roles/1/permissions/1
+Authorization: Bearer {{token}}
+
+### POST - Assigner plusieurs permissions au rôle Admin
+POST {{payzen_backend_HostAddress}}/api/roles/1/permissions/2
+Authorization: Bearer {{token}}
+
+###
+POST {{payzen_backend_HostAddress}}/api/roles/1/permissions/3
+Authorization: Bearer {{token}}
+
+###
+POST {{payzen_backend_HostAddress}}/api/roles/1/permissions/4
+Authorization: Bearer {{token}}
+
+###
+POST {{payzen_backend_HostAddress}}/api/roles/1/permissions/5
+Authorization: Bearer {{token}}
+
+### DELETE - Retirer une permission d'un rôle
+DELETE {{payzen_backend_HostAddress}}/api/roles/1/permissions/3
+Authorization: Bearer {{token}}
+
+###############################################
+# 6. TESTS DE VALIDATION
+###############################################
+
+### TEST - Créer un utilisateur avec email invalide (doit échouer)
+POST {{payzen_backend_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Username": "testuser",
+  "Email": "invalid-email",
+  "Password": "12345678"
+}
+
+### TEST - Créer un utilisateur avec mot de passe trop court (doit échouer)
+POST {{payzen_backend_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Username": "testuser",
+  "Email": "test@exemple.com",
+  "Password": "123"
+}
+
+### TEST - Créer un rôle avec nom trop court (doit échouer)
+POST {{payzen_backend_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "Ab",
+  "Description": "Description valide"
+}
+
+### TEST - Créer une permission avec description trop courte (doit échouer)
+POST {{payzen_backend_HostAddress}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "Name": "TEST_PERM",
+  "Description": "Court"
+}
+
+### TEST - Accéder sans authentification (doit retourner 401)
+GET {{payzen_backend_HostAddress}}/api/users
+Accept: application/json
+
+###############################################
+# 7. TESTS ANCIENS (pour compatibilité)
+###############################################
+
+### TEST - Ancien endpoint de test status
+GET {{payzen_backend_HostAddress}}/api/test/status
+Accept: application/json
+
+### TEST - Ancien endpoint de test database
+GET {{payzen_backend_HostAddress}}/api/test/database
+Accept: application/json
+
+### TEST - Ancien endpoint de test ping
+GET {{payzen_backend_HostAddress}}/api/test/ping
+Accept: application/json
+
+###############################################
+# 8. SCÉNARIOS COMPLETS
+###############################################
+
+### SCÉNARIO 1: Créer un système complet
+# 1. Login
+# 2. Créer des permissions
+# 3. Créer des rôles
+# 4. Assigner permissions aux rôles
+# 5. Créer des utilisateurs
+
+### SCÉNARIO 2: Vérifier les contraintes
+# 1. Tenter de supprimer un rôle assigné (doit échouer)
+# 2. Tenter de supprimer une permission assignée (doit échouer)
+# 3. Tenter de créer un doublon (doit échouer)

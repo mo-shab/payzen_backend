@@ -1,0 +1,27 @@
+﻿using System.Text;
+using System.Security.Cryptography;
+
+namespace payzen_backend.Models.Users
+{
+    public class Users
+    {
+        public int Id { get; set; }
+        public int? CompanyId { get; set; }
+        public required string Username { get; set; }
+        public required string Email { get; set; }
+        public required string PasswordHash { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset? UpdatedAt { get; set; }
+        public DateTimeOffset? DeletedAt { get; set; }
+        public int CreatedBy { get; set; }
+        public int? UpdatedBy { get; set; }
+        public int? DeletedBy { get; set; }
+
+        // Vérifier le mot de passe avec BCrypt
+        public bool VerifyPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.Verify(password, PasswordHash);
+        }
+    }
+}
