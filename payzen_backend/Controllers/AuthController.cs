@@ -33,13 +33,7 @@ namespace payzen_backend.Controllers
         [Produces("application/json")] // Retourne du JSON
         // Retiré [Consumes] pour être plus tolérant
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
-        {
-            // Debug: Afficher les informations reçues
-            Console.WriteLine($"\n📧 ========== LOGIN ATTEMPT ==========");
-            Console.WriteLine($"📧 Email: {loginRequest?.Email ?? "NULL"}");
-            Console.WriteLine($"🔑 Password length: {loginRequest?.Password?.Length ?? 0}");
-            Console.WriteLine($"📨 Content-Type: {Request.ContentType ?? "NOT SET"}");
-            
+        {            
             // Validation du modèle
             if (!ModelState.IsValid)
             {
@@ -89,8 +83,8 @@ namespace payzen_backend.Controllers
             }
 
             // Génération du token JWT
-            var token = _jwt.GenerateToken(user.Id, user.Email);
-            
+            var token = await _jwt.GenerateTokenAsync(user.Id, user.Email);
+
             var expiresInMinutes = int.Parse(_config["JwtSettings:ExpiresInMinutes"] ?? "120");
             var expiresAt = DateTime.UtcNow.AddMinutes(expiresInMinutes);
 

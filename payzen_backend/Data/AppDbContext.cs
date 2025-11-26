@@ -82,7 +82,7 @@ namespace payzen_backend.Data
             modelBuilder.Entity<RolesPermissions>()
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
                 .IsUnique(true)
-                .HasFilter("[DeletedAt] IS NULL");  // ✅ Même logique pour RolesPermissions
+                .HasFilter("[DeletedAt] IS NULL");
 
             // Relation avec Roles
             modelBuilder.Entity<RolesPermissions>()
@@ -106,7 +106,7 @@ namespace payzen_backend.Data
             modelBuilder.Entity<UsersRoles>()
                 .HasIndex(ur => new { ur.UserId, ur.RoleId })
                 .IsUnique(true)
-                .HasFilter("[DeletedAt] IS NULL");  // ✅ Même logique pour UsersRoles
+                .HasFilter("[DeletedAt] IS NULL");
 
             // Relation avec Users
             modelBuilder.Entity<UsersRoles>()
@@ -121,6 +121,12 @@ namespace payzen_backend.Data
                 .WithMany()
                 .HasForeignKey(ur => ur.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Index unique composite filtré
+            modelBuilder.Entity<RolesPermissions>()
+                .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+                .IsUnique(true)
+                .HasFilter("[DeletedAt] IS NULL");
         }
     }
 }
