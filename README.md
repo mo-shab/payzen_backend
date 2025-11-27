@@ -135,11 +135,14 @@ Authorization: Bearer {token}
 #### 📋 Récupérer tous les utilisateurs
 
 GET /api/users
+
 Authorization: Bearer {token}
 
 **Permission requise** : `READ_USERS`
 
 **Réponse (200 OK)**
+
+```json
 [
 	{
 		"id": 1,
@@ -149,15 +152,19 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-15T10:30:00"
 	}
 ]
+```
 
 ---
 
 #### 🔍 Récupérer un utilisateur par ID
+
 GET /api/users/{id}
+
 Authorization: Bearer {token}
 
 **Permission requise** : `VIEW_USERS`
 
+```json
 **Réponse (200 OK)**
 {
 	"id": 1,
@@ -166,6 +173,7 @@ Authorization: Bearer {token}
 	"isActive": true,
 	"createdAt": "2025-01-15T10:30:00"
 }
+```
 
 **Erreurs possibles**
 - `404 Not Found` : Utilisateur non trouvé
@@ -174,15 +182,20 @@ Authorization: Bearer {token}
 
 #### ➕ Créer un utilisateur
 
-POST /api/users Authorization:
-Bearer {token}
+POST /api/users 
+
+Authorization: Bearer {token}
+
 Content-Type: application/json
+
+```json
 {
 	"Username": "john.doe",
 	"Email": "john.doe@payzen.com",
 	"Password": "SecurePass123!",
 	"IsActive": true
 }
+```
 
 **Permission requise** : `CREATE_USERS`
 
