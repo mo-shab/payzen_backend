@@ -40,8 +40,8 @@ API REST pour la gestion de la paie (PayZen) développée avec **.NET 9** et **S
 http://localhost:5119
 
 ### Headers requis
-Content-Type: application/json 
-Authorization: Bearer {token}
+Content-Type: application/json <br>
+Authorization: Bearer {token}<br>
 ### Variables d'environnement (appsettings.json)
 
 ```json
