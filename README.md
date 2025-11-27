@@ -80,7 +80,8 @@ L'API utilise **JWT (JSON Web Tokens)** pour l'authentification.
 
 POST /api/auth/login
 
-```json
+```
+json
 Content-Type: application/json
 {
 	"Email": "admin@payzen.com",
