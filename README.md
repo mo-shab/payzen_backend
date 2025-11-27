@@ -43,7 +43,9 @@ http://localhost:5119
 Content-Type: application/json 
 Authorization: Bearer {token}
 ### Variables d'environnement (appsettings.json)
-``{ "ConnectionStrings": 
+
+```json
+{ "ConnectionStrings": 
 	{
 		"DefaultConnection": "Server=...;Database=PayZenDB;..."
 	},
@@ -54,7 +56,8 @@ Authorization: Bearer {token}
 				"Audience": "PayzenApp",
 				"ExpiresInMinutes": 120
 	}
-}``
+}```
+
 ---
 
 ## 🔐 Authentification
