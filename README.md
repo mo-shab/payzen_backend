@@ -134,7 +134,8 @@ Authorization: Bearer {token}<br>
 
 GET /api/users<br>
 Authorization: Bearer {token}<br>
-**Permission requise** : `READ_USERS` <br>
+**Permission requise** : `READ_USERS`
+
 **Réponse (200 OK)**
 
 ```json
@@ -153,8 +154,9 @@ Authorization: Bearer {token}<br>
 
 #### 🔍 Récupérer un utilisateur par ID
 
-GET /api/users/{id}
-Authorization: Bearer {token}
+GET /api/users/{id}<br>
+Authorization: Bearer {token}<br>
+
 **Permission requise** : `VIEW_USERS`
 
 **Réponse (200 OK)**
@@ -176,11 +178,9 @@ Authorization: Bearer {token}
 
 #### ➕ Créer un utilisateur
 
-POST /api/users 
-
-Authorization: Bearer {token}
-
-Content-Type: application/json
+POST /api/users <br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
 ```json
 {
@@ -194,6 +194,7 @@ Content-Type: application/json
 **Permission requise** : `CREATE_USERS`
 
 **Réponse (201 Created)**
+```json
 {
 	"id": 5,
 	"username": "john.doe",
@@ -201,6 +202,7 @@ Content-Type: application/json
 	"isActive": true,
 	"createdAt": "2025-01-27T14:30:00"
 }
+```
 
 **Erreurs possibles**
 - `400 Bad Request` : Validation échouée
@@ -209,14 +211,17 @@ Content-Type: application/json
 ---
 
 #### ✏️ Mettre à jour un utilisateur
-PUT /api/users/{id}
-Authorization: Bearer {token}
+PUT /api/users/{id}<br>
+Authorization: Bearer {token}<br>
 Content-Type: application/json
+
+```json
 {
 	"Email": "newemail@payzen.com",
 	"Password": "NewPassword123!",
 	"IsActive": false
 }
+```
 
 **Permission requise** : `EDIT_USERS`
 
@@ -226,8 +231,8 @@ Content-Type: application/json
 
 #### 🗑️ Supprimer un utilisateur (soft delete)
 
-DELETE /api/users/{id}
-Authorization: Bearer {token}
+DELETE /api/users/{id}<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `DELETE_USERS`
 
@@ -241,12 +246,12 @@ Authorization: Bearer {token}
 ### 3. Roles - Gestion des rôles
 
 #### 📋 Récupérer tous les rôles
-
-GET /api/roles
-Authorization: Bearer {token}
+GET /api/roles<br>
+Authorization: Bearer {token}<br>
 
 **Réponse (200 OK)**
 
+```json
 [
 	{
 		"id": 1,
@@ -255,13 +260,14 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-15T10:00:00" 
 	}
 ]
+```
 
 ---
 
 #### 🔍 Récupérer un rôle par ID
 
-GET /api/roles/{id}
-Authorization: Bearer {token}
+GET /api/roles/{id}<br>
+Authorization: Bearer {token}<br>
 
 ---
 
