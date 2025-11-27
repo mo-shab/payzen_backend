@@ -81,7 +81,6 @@ L'API utilise **JWT (JSON Web Tokens)** pour l'authentification.
 POST /api/auth/login
 
 ```
-json
 Content-Type: application/json
 {
 	"Email": "admin@payzen.com",
@@ -106,7 +105,7 @@ Content-Type: application/json
 		"permissions": 
 			["READ_USERS",
 			"CREATE_COMPANY",
-			...]
+			.....]
 	}
 }
 ```
@@ -123,9 +122,12 @@ POST /api/auth/logout
 Authorization: Bearer {token}
 
 **Réponse (200 OK)**
+
+```json
 {
 	"message": "Déconnexion réussie. Veuillez supprimer le token côté client."
 }
+```
 
 ---
 
