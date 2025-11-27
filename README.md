@@ -159,13 +159,12 @@ Authorization: Bearer {token}
 #### 🔍 Récupérer un utilisateur par ID
 
 GET /api/users/{id}
-
 Authorization: Bearer {token}
-
 **Permission requise** : `VIEW_USERS`
 
-```json
 **Réponse (200 OK)**
+
+```json
 {
 	"id": 1,
 	"username": "admin",
