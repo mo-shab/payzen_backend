@@ -273,13 +273,15 @@ Authorization: Bearer {token}<br>
 
 #### ➕ Créer un rôle
 
-POST /api/roles
-Authorization: Bearer {token} 
-Content-Type: application/json
+POST /api/roles<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
+```json
 {
 	"Name": "Manager",
 	"Description": "Gestionnaire avec droits limités"
 }
+```
 
 **Réponse (201 Created)**
 
@@ -287,20 +289,22 @@ Content-Type: application/json
 
 #### ✏️ Mettre à jour un rôle
 
-PUT /api/roles/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
+PUT /api/roles/{id}<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
+```json
 {
 	"Name": "Super Admin",
 	"Description": "Super administrateur"
 }
+```
 
 ---
 
 #### 🗑️ Supprimer un rôle (soft delete)
 
-DELETE /api/roles/{id}
-Authorization: Bearer {token}
+DELETE /api/roles/{id}<br>
+Authorization: Bearer {token}<br>
 
 **Note** : Ne peut pas supprimer un rôle assigné à des utilisateurs
 
@@ -310,11 +314,12 @@ Authorization: Bearer {token}
 
 #### 📋 Récupérer toutes les permissions
 
-GET /api/permissions
-Authorization: Bearer {token}
+GET /api/permissions<br>
+Authorization: Bearer {token}<br>
 
 **Réponse (200 OK)**
 
+```json
 [
 	{
 		"id": 1,
@@ -323,25 +328,29 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-15T10:00:00"
 	}
 ]
+```
 
 ---
 
 #### 🔍 Récupérer une permission par ID
 
-GET /api/permissions/{id}
-Authorization: Bearer {token}
+GET /api/permissions/{id}<br>
+Authorization: Bearer {token}<br>
 
 ---
 
 #### ➕ Créer une permission
 
-POST /api/permissions
-Authorization: Bearer {token}
-Content-Type: application/json
+POST /api/permissions<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
+
+```json
 {
 	"Name": "CREATE_EMPLOYEES",
 	"Description": "Permet de créer des employés"
 }
+```
 
 **Réponse (201 Created)**
 
@@ -349,19 +358,22 @@ Content-Type: application/json
 
 #### ✏️ Mettre à jour une permission
 
-PUT /api/permissions/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
+PUT /api/permissions/{id}<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
+
+```json
 {
 	"Description": "Nouvelle description de la permission"
 }
+```
 
 ---
 
 #### 🗑️ Supprimer une permission (soft delete)
 
-DELETE /api/permissions/{id}
-Authorization: Bearer {token}
+DELETE /api/permissions/{id}<br>
+Authorization: Bearer {token}<br>
 
 ---
 
@@ -369,11 +381,12 @@ Authorization: Bearer {token}
 
 #### 📋 Récupérer les permissions d'un rôle
 
-GET /api/roles-permissions/role/{roleId}
-Authorization: Bearer {token}
+GET /api/roles-permissions/role/{roleId}<br>
+Authorization: Bearer {token}<br>
 
 **Réponse (200 OK)**
 
+```json
 [
 	{
 		"id": 1,
@@ -382,37 +395,42 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-15T10:00:00"
 	}
 ]
+```
 
 ---
 
 #### ➕ Assigner une permission à un rôle
 
-POST /api/roles-permissions 
-Authorization: Bearer {token}
-Content-Type: application/json
+POST /api/roles-permissions <br>
+Authorization: Bearer {token} <br>
+Content-Type: application/json <br>
 
+```json
 {
 	"RoleId": 1,
 	"PermissionId": 5
 }
+```
 
 **Réponse (200 OK)**
-{
-	"message": "Permission assignée avec succès"
-}
+
+```json
+{ "message": "Permission assignée avec succès" }
+```
 
 ---
 
 #### 🗑️ Retirer une permission d'un rôle
+DELETE /api/roles-permissions<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-DELETE /api/roles-permissions
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"RoleId": 1,
 	"PermissionId": 5
 }
+```
 
 **Réponse (204 No Content)**
 
@@ -421,11 +439,12 @@ Content-Type: application/json
 ### 6. Users-Roles - Liaison Utilisateurs ↔ Rôles
 
 #### 📋 Récupérer les rôles d'un utilisateur
-GET /api/users-roles/user/{userId} 
-Authorization: Bearer {token}
+GET /api/users-roles/user/{userId} <br>
+Authorization: Bearer {token}<br>
 
 **Réponse (200 OK)**
 
+```json
 [
 	{
 		"id": 1,
@@ -434,86 +453,95 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-15T10:00:00"
 	}
 ]
-
+```
 ---
 
 #### 📋 Récupérer les utilisateurs ayant un rôle
-GET /api/users-roles/role/{roleId}
-Authorization: Bearer {token}
+GET /api/users-roles/role/{roleId}<br>
+Authorization: Bearer {token}<br>
 
 ---
 
 #### ➕ Assigner un rôle à un utilisateur
-POST /api/users-roles
-Authorization: Bearer {token}
-Content-Type: application/json
+POST /api/users-roles<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
+```json
 {
 	"UserId": 5,
 	"RoleId": 2
 }
+```
 
 **Réponse (200 OK)**
-{
-	"message": "Rôle assigné avec succès"
-}
+```json
+{ "message": "Rôle assigné avec succès" }
+```
 
 ---
 
 #### ➕ Assigner plusieurs rôles à un utilisateur
+POST /api/users-roles/bulk-assign<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-POST /api/users-roles/bulk-assign
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"UserId": 5,
 	"RoleIds": [1, 2, 3]
 }
+```
 
 **Réponse (200 OK)**
 
+```json
 {
 	"message": "Rôles assignés avec succès",
 	"assigned": 2,
 	"reactivated": 1,
 	"skipped": 0
 }
+```
 
 ---
 
 #### 🔄 Remplacer tous les rôles d'un utilisateur
+PUT /api/users-roles/replace<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-PUT /api/users-roles/replace
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"UserId": 5,
 	"RoleIds": [2, 3]
 }
+```
 
 **Réponse (200 OK)**
 
+```json
 {
 	"message": "Rôles remplacés avec succès",
 	"removed": 3,
 	"assigned": 2,
 	"reactivated": 0
 }
+```
 
 ---
 
 #### 🗑️ Retirer un rôle d'un utilisateur
+DELETE /api/users-roles<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-DELETE /api/users-roles
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"UserId": 5,
 	"RoleId": 2
 }
+```
 
 **Réponse (204 No Content)**
 
@@ -522,14 +550,14 @@ Content-Type: application/json
 ### 7. Companies - Gestion des sociétés
 
 #### 📋 Récupérer toutes les sociétés
-
-GET /api/companies
-Authorization: Bearer {token}
+GET /api/companies<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `READ_COMPANIES`
 
 **Réponse (200 OK)**
 
+```json
 [
 	{
 		"id": 1,
@@ -550,42 +578,40 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-20T10:00:00"
 	}
 ]
+```
 
 ---
 
 #### 🔍 Récupérer une société par ID
-
-GET /api/companies/{id}
-Authorization: Bearer {token}
+GET /api/companies/{id}<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_COMPANY`
 
 ---
 
 #### 🏢 Récupérer les sociétés gérées par un cabinet
-
-GET /api/companies/managed-by/{managedByCompanyId}
-Authorization: Bearer {token}
+GET /api/companies/managed-by/{managedByCompanyId}<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_MANAGED_COMPANIES`
 
 ---
 
 #### 🏛️ Récupérer tous les cabinets d'experts
-
-GET /api/companies/cabinets-experts
-Authorization: Bearer {token}
+GET /api/companies/cabinets-experts<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_CABINET_EXPERTS`
 
 ---
 
 #### ➕ Créer une société
+POST /api/companies<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-POST /api/companies
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"CompanyName": "TechMaroc Solutions SARL",
 	"CompanyAddress": "123 Boulevard Mohammed V",
@@ -601,6 +627,7 @@ Content-Type: application/json
 	"ManagedByCompanyId": null,
 	"IsCabinetExpert": false
 }
+```
 
 **Permission requise** : `CREATE_COMPANY`
 
@@ -613,25 +640,25 @@ Content-Type: application/json
 ---
 
 #### ✏️ Mettre à jour une société
+PUT /api/companies/{id}<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-PUT /api/companies/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"CompanyName": "TechMaroc Updated",
 	"Email": "new.contact@techmaroc.ma",
 	"PhoneNumber": 522999888
 }
+```
 
 **Permission requise** : `EDIT_COMPANY`
 
 ---
 
 #### 🗑️ Supprimer une société (soft delete)
-
-DELETE /api/companies/{id}
-Authorization: Bearer {token}
+DELETE /api/companies/{id}<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `DELETE_COMPANY`
 
@@ -643,12 +670,14 @@ Authorization: Bearer {token}
 ### 8. Employees - Gestion des employés
 
 #### 📋 Récupérer tous les employés
-GET /api/employees
-Authorization: Bearer {token}
+GET /api/employees<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `READ_EMPLOYEES`
 
 **Réponse (200 OK)**
+
+```json
 [
 	{
 		"id": 1,
@@ -670,42 +699,40 @@ Authorization: Bearer {token}
 		"createdAt": "2025-01-25T10:00:00" 
 	}
 ]
+```
 
 ---
 
 #### 🔍 Récupérer un employé par ID
-
-GET /api/employees/{id} 
-Authorization: Bearer {token}
+GET /api/employees/{id} <br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_EMPLOYEE`
 
 ---
 
 #### 🏢 Récupérer les employés d'une société
-
-GET /api/employees/company/{companyId}
-Authorization: Bearer {token}
+GET /api/employees/company/{companyId}<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_COMPANY_EMPLOYEES`
 
 ---
 
 #### 👥 Récupérer les subordonnés d'un manager
-
-GET /api/employees/manager/{managerId}/subordinates
-Authorization: Bearer {token}
+GET /api/employees/manager/{managerId}/subordinates<br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `VIEW_SUBORDINATES`
 
 ---
 
 #### ➕ Créer un employé (avec compte utilisateur automatique)
+POST /api/employees <br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-POST /api/employees 
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"FirstName": "Mohammed",
 	"LastName": "Benali",
@@ -723,11 +750,13 @@ Content-Type: application/json
 	"Password": "CustomPass123!",
 	"CreateUserAccount": true 
 }
+```
 
 **Permission requise** : `CREATE_EMPLOYEE`
 
 **Réponse (201 Created)**
 
+```json
 {
 	"employee": 
 		{
@@ -746,6 +775,7 @@ Content-Type: application/json
 			"message": "Un compte utilisateur a été créé. Le mot de passe temporaire doit être changé lors de la première connexion."
 		}
 }
+```
 
 **Champs requis** :
 - `FirstName`, `LastName`, `CinNumber`, `DateOfBirth`, `Phone`, `Email`, `CompanyId`
@@ -762,26 +792,26 @@ Content-Type: application/json
 ---
 
 #### ✏️ Mettre à jour un employé
+PUT /api/employees/{id}<br>
+Authorization: Bearer {token}<br>
+Content-Type: application/json<br>
 
-PUT /api/employees/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
-
+```json
 {
 	"Email": "new.email@company.com",
 	"Phone": 699999999,
 	"ManagerId": 3,
 	"StatusId": 2
 }
+```
 
 **Permission requise** : `EDIT_EMPLOYEE`
 
 ---
 
 #### 🗑️ Supprimer un employé (soft delete)
-
-DELETE /api/employees/{id} 
-Authorization: Bearer {token}
+DELETE /api/employees/{id} <br>
+Authorization: Bearer {token}<br>
 
 **Permission requise** : `DELETE_EMPLOYEE`
 
@@ -793,6 +823,7 @@ Authorization: Bearer {token}
 ## 📊 Modèles de données
 
 ### User
+```json
 {
 	"id": 1, 
 	"employeeId": 5, 
@@ -807,8 +838,10 @@ Authorization: Bearer {token}
 	"deletedAt": null, 
 	"deletedBy": null 
 }
+```
 
 ### Role
+```json
 {
 	"id": 1,
 	"name": "Admin",
@@ -816,8 +849,10 @@ Authorization: Bearer {token}
 	"createdAt": "2025-01-15T10:00:00", 
 	"createdBy": 1 
 }
+```
 
 ### Permission
+```json
 { 
 	"id": 1, 
 	"name": "READ_USERS",
@@ -825,8 +860,10 @@ Authorization: Bearer {token}
 	"createdAt": "2025-01-15T10:00:00", 
 	"createdBy": 1
 }
+```
 
 ### Company
+```json
 { 
 	"id": 1,
 	"companyName": "TechMaroc SARL",
@@ -843,8 +880,10 @@ Authorization: Bearer {token}
 	"createdAt": "2025-01-20T10:00:00",
 	"createdBy": 1
 }
+```
 
 ### Employee
+```json
 { 
 	"id": 1, 
 	"firstName": "Mohammed",
@@ -860,6 +899,7 @@ Authorization: Bearer {token}
 	"createdAt": "2025-01-25T10:00:00", 
 	"createdBy": 1
 }
+````
 
 ---
 
