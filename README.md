@@ -118,10 +118,8 @@ Content-Type: application/json
 
 #### 🚪 Logout
 
-POST /api/auth/logout
-
-Authorization: Bearer {token}
-
+POST /api/auth/logout<br>
+Authorization: Bearer {token}<br>
 **Réponse (200 OK)**
 
 ```json
@@ -134,12 +132,9 @@ Authorization: Bearer {token}
 
 #### 📋 Récupérer tous les utilisateurs
 
-GET /api/users
-
-Authorization: Bearer {token}
-
-**Permission requise** : `READ_USERS`
-
+GET /api/users<br>
+Authorization: Bearer {token}<br>
+**Permission requise** : `READ_USERS` <br>
 **Réponse (200 OK)**
 
 ```json
