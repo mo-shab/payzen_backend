@@ -56,7 +56,8 @@ Authorization: Bearer {token}
 				"Audience": "PayzenApp",
 				"ExpiresInMinutes": 120
 	}
-}```
+}
+```
 
 ---
 
@@ -78,12 +79,17 @@ L'API utilise **JWT (JSON Web Tokens)** pour l'authentification.
 #### 🔑 Login
 
 POST /api/auth/login
+
+```json
 Content-Type: application/json
 {
 	"Email": "admin@payzen.com",
 	"Password": "12345678"
 }
+```
+
 **Réponse (200 OK)**
+```json
 {
 	"message": "Authentification réussie",
 	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -102,6 +108,8 @@ Content-Type: application/json
 			...]
 	}
 }
+```
+
 **Erreurs possibles**
 - `400 Bad Request` : Données invalides
 - `401 Unauthorized` : Email ou mot de passe incorrect
