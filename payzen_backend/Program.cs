@@ -8,12 +8,11 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuration explicite pour accepter JSON
-// Pourquoi: S'assurer que l'API accepte et retourne du JSON correctement
+// S'assurer que l'API accepte et retourne du JSON correctement
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Options de sérialisation JSON si nécessaire
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Garde les noms de propriétés tels quels
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
 builder.Services.AddOpenApi();
@@ -92,17 +91,17 @@ builder.Services
     });
 
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<PasswordGeneratorService>();
 builder.Services.AddAuthorization();
 
-// CHANGEMENT: Ajout de CORS si nécessaire (pour frontend)
-// Pourquoi: Permettre les requêtes cross-origin si vous avez un frontend séparé
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -113,7 +112,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseCors();
 
 app.Use(async (context, next) =>
 {
@@ -137,7 +136,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 

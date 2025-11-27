@@ -1,12 +1,11 @@
-﻿using System.Text;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 
 namespace payzen_backend.Models.Users
 {
     public class Users
     {
         public int Id { get; set; }
-        public int? CompanyId { get; set; }
+        public int? EmployeeId { get; set; }
         public required string Username { get; set; }
         public required string Email { get; set; }
         public required string PasswordHash { get; set; }
@@ -17,6 +16,9 @@ namespace payzen_backend.Models.Users
         public int CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public int? DeletedBy { get; set; }
+
+        // 👇 Navigation property pour Employee (IMPORTANT)
+        public Employee.Employee? Employee { get; set; }
 
         // Vérifier le mot de passe avec BCrypt
         public bool VerifyPassword(string password)

@@ -11,7 +11,7 @@ namespace payzen_backend.Controllers
 {
     [Route("api/users")]
     [ApiController]
-    [Authorize] // Authentification requise pour tous les endpoints
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -22,7 +22,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les utilisateurs actifs
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_USERS")] // ✅ Permission requise
+        [HasPermission("READ_USERS")]
         public async Task<ActionResult<IEnumerable<UserReadDto>>> GetAll()
         {
             var users = await _db.Users

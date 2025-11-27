@@ -49,16 +49,16 @@ namespace payzen_backend.Controllers
                 });
             }
 
-            // Vérifier que loginRequest n'est pas null
             if (loginRequest == null)
             {
                 Console.WriteLine("❌ loginRequest is null");
                 return BadRequest(new { Message = "Les données de connexion sont requises" });
             }
 
-            // Recherche de l'utilisateur par email
+            // Recherche de l'utilisateur avec ses relations Employee
             var user = await _db.Users
                 .AsNoTracking()
+                .Include(u => u.Employee) // 👈 Inclure l'employé si lié
                 .Where(u => u.Email == loginRequest.Email
                         && u.IsActive == true
                         && u.DeletedAt == null)
@@ -66,7 +66,6 @@ namespace payzen_backend.Controllers
 
             Console.WriteLine($"👤 User found in database: {user != null}");
 
-            // Vérification de l'utilisateur et du mot de passe
             if (user == null)
             {
                 Console.WriteLine("❌ User not found or inactive");
@@ -82,6 +81,26 @@ namespace payzen_backend.Controllers
                 return Unauthorized(new { Message = "Email ou mot de passe incorrect" });
             }
 
+            // 👇 Récupérer les rôles de l'utilisateur
+            var userRoles = await _db.UsersRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == user.Id && ur.DeletedAt == null)
+                .Include(ur => ur.Role)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
+
+            // 👇 Récupérer toutes les permissions de l'utilisateur via ses rôles
+            var userPermissions = await _db.RolesPermissions
+                .AsNoTracking()
+                .Where(rp => _db.UsersRoles
+                    .Where(ur => ur.UserId == user.Id && ur.DeletedAt == null)
+                    .Select(ur => ur.RoleId)
+                    .Contains(rp.RoleId) && rp.DeletedAt == null)
+                .Include(rp => rp.Permission)
+                .Select(rp => rp.Permission.Name)
+                .Distinct()
+                .ToListAsync();
+
             // Génération du token JWT
             var token = await _jwt.GenerateTokenAsync(user.Id, user.Email);
 
@@ -91,6 +110,7 @@ namespace payzen_backend.Controllers
             Console.WriteLine("✅ Login successful - Token generated");
             Console.WriteLine($"✅ ========== END LOGIN ==========\n");
 
+            // 👇 Créer la réponse avec toutes les informations
             var response = new LoginResponse
             {
                 Message = "Authentification réussie",
@@ -100,7 +120,11 @@ namespace payzen_backend.Controllers
                 {
                     Id = user.Id,
                     Email = user.Email,
-                    Username = user.Username
+                    Username = user.Username,
+                    FirstName = user.Employee?.FirstName ?? "",
+                    LastName = user.Employee?.LastName ?? "",
+                    Roles = userRoles,
+                    Permissions = userPermissions
                 }
             };
 

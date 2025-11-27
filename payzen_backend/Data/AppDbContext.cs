@@ -2,6 +2,8 @@
 using payzen_backend.Models.Users;
 using payzen_backend.Models;
 using payzen_backend.Models.Permissions;
+using payzen_backend.Models.Employee;
+using payzen_backend.Models.Company;
 
 namespace payzen_backend.Data
 {
@@ -13,9 +15,93 @@ namespace payzen_backend.Data
         public DbSet<Roles> Roles { get; set; }
         public DbSet<RolesPermissions> RolesPermissions { get; set; }
         public DbSet<UsersRoles> UsersRoles { get; set; }
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Company> Companies { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
+            // Configuration Employee
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.ToTable("Employee");
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.FirstName).HasColumnName("first_name").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.LastName).HasColumnName("last_name").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.CinNumber).HasColumnName("cin_number").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth").IsRequired();
+                entity.Property(e => e.Phone).HasColumnName("phone").IsRequired();
+                entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.CompanyId).HasColumnName("company_id").IsRequired();
+                entity.Property(e => e.ManagerId).HasColumnName("manager_id");
+                entity.Property(e => e.StatusId).HasColumnName("status_id");
+                entity.Property(e => e.GenderId).HasColumnName("gender_id");
+                entity.Property(e => e.NationalityId).HasColumnName("nationality_id");
+                entity.Property(e => e.EducationLevelId).HasColumnName("education_level_id");
+                entity.Property(e => e.MaritalStatusId).HasColumnName("marital_status_id");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+                entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
+                entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
+                entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+                entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+
+                // Relations
+                entity.HasOne(e => e.Company)
+                    .WithMany(c => c.Employees)
+                    .HasForeignKey(e => e.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Manager)
+                    .WithMany(m => m.Subordinates)
+                    .HasForeignKey(e => e.ManagerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configuration Company
+            modelBuilder.Entity<Company>(entity =>
+            {
+                entity.ToTable("Company");
+                entity.HasKey(c => c.Id);
+                
+                entity.Property(c => c.CompanyName).HasColumnName("company_name").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.CompanyAddress).HasColumnName("company_address").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.CityId).HasColumnName("city_id");
+                entity.Property(c => c.CountryId).HasColumnName("country_id");
+                entity.Property(c => c.IceNumber).HasColumnName("ice_number").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.CnssNumber).HasColumnName("cnss_number").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.IfNumber).HasColumnName("if_number").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.RcNumber).HasColumnName("rc_number").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.RibNumber).HasColumnName("rib_number").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.PhoneNumber).HasColumnName("phone_number").IsRequired();
+                entity.Property(c => c.Email).HasColumnName("email").HasMaxLength(500).IsRequired();
+                entity.Property(c => c.ManagedByCompanyId).HasColumnName("managedby_company_id");
+                entity.Property(c => c.IsCabinetExpert).HasColumnName("is_cabinet_expert").HasDefaultValue(false);
+                entity.Property(c => c.CreatedAt).HasColumnName("created_at");
+                entity.Property(c => c.CreatedBy).HasColumnName("created_by");
+                entity.Property(c => c.ModifiedAt).HasColumnName("modified_at");
+                entity.Property(c => c.ModifiedBy).HasColumnName("modified_by");
+                entity.Property(c => c.DeletedAt).HasColumnName("deleted_at");
+                entity.Property(c => c.DeletedBy).HasColumnName("deleted_by");
+
+                // Relation hiérarchique
+                entity.HasOne(c => c.ManagedByCompany)
+                    .WithMany(c => c.ManagedCompanies)
+                    .HasForeignKey(c => c.ManagedByCompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+            
+            // Configuration User -> Employee
+            modelBuilder.Entity<Users>(entity =>
+            {
+                entity.HasOne(u => u.Employee)
+                    .WithMany()
+                    .HasForeignKey(u => u.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // Configure Users entity
             modelBuilder.Entity<Users>()
                 .HasKey(u => u.Id);

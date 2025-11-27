@@ -361,3 +361,61 @@ Accept: application/json
 # 1. Tenter de supprimer un rôle assigné (doit échouer)
 # 2. Tenter de supprimer une permission assignée (doit échouer)
 # 3. Tenter de créer un doublon (doit échouer)
+
+###
+# ==================== CRÉER UN EMPLOYEE AVEC COMPTE USER AUTOMATIQUE ====================
+
+###
+# Option 1 : Avec mot de passe personnalisé
+POST {{payzen_backend_HostAddress}}/api/employees
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "FirstName": "Mohammed",
+  "LastName": "Benali",
+  "CinNumber": "AB123456",
+  "DateOfBirth": "1990-05-15",
+  "Phone": 612345678,
+  "Email": "mohammed.benali@company.com",
+  "CompanyId": 1,
+  "ManagerId": null,
+  "StatusId": 1,
+  "GenderId": 1,
+  "Password": "MyCustomPass123!",
+  "CreateUserAccount": true
+}
+
+###
+# Option 2 : Sans mot de passe (génération automatique)
+POST {{payzen_backend_HostAddress}}/api/employees
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "FirstName": "Fatima",
+  "LastName": "El Amrani",
+  "CinNumber": "CD789012",
+  "DateOfBirth": "1995-08-20",
+  "Phone": 698765432,
+  "Email": "fatima.elamrani@company.com",
+  "CompanyId": 1,
+  "CreateUserAccount": true
+}
+
+###
+# Option 3 : Sans créer de compte user
+POST {{payzen_backend_HostAddress}}/api/employees
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "FirstName": "Youssef",
+  "LastName": "Alaoui",
+  "CinNumber": "EF345678",
+  "DateOfBirth": "1988-12-10",
+  "Phone": 654321098,
+  "Email": "youssef.alaoui@company.com",
+  "CompanyId": 1,
+  "CreateUserAccount": false
+}
