@@ -119,14 +119,13 @@ Content-Type: application/json
 #### 🚪 Logout
 
 POST /api/auth/logout
+
 Authorization: Bearer {token}
 
 **Réponse (200 OK)**
 
 ```json
-{
-	"message": "Déconnexion réussie. Veuillez supprimer le token côté client."
-}
+{ "message": "Déconnexion réussie. Veuillez supprimer le token côté client." }
 ```
 
 ---
@@ -134,6 +133,7 @@ Authorization: Bearer {token}
 ### 2. Users - Gestion des utilisateurs
 
 #### 📋 Récupérer tous les utilisateurs
+
 GET /api/users
 Authorization: Bearer {token}
 
