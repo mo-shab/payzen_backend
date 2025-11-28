@@ -1,49 +1,50 @@
-Liste des Endpoints API
-Authentication
-•	POST /api/auth/login
-•	POST /api/auth/logout
-Users
-•	GET /api/users
-•	GET /api/users/{id}
-•	POST /api/users
-•	PUT /api/users/{id}
-•	DELETE /api/users/{id}
-Roles
-•	GET /api/roles
-•	GET /api/roles/{id}
-•	POST /api/roles
-•	PUT /api/roles/{id}
-•	DELETE /api/roles/{id}
-Permissions
-•	GET /api/permissions
-•	GET /api/permissions/{id}
-•	POST /api/permissions
-•	PUT /api/permissions/{id}
-•	DELETE /api/permissions/{id}
-Roles-Permissions
-•	GET /api/roles-permissions/role/{roleId}
-•	POST /api/roles-permissions
-•	DELETE /api/roles-permissions
-Users-Roles
-•	GET /api/users-roles/user/{userId}
-•	GET /api/users-roles/role/{roleId}
-•	POST /api/users-roles
-•	POST /api/users-roles/bulk-assign
-•	PUT /api/users-roles/replace
-•	DELETE /api/users-roles
-Companies
-•	GET /api/companies
-•	GET /api/companies/{id}
-•	GET /api/companies/managed-by/{managedByCompanyId}
-•	GET /api/companies/cabinets-experts
-•	POST /api/companies
-•	PUT /api/companies/{id}
-•	DELETE /api/companies/{id}
-Employees
-•	GET /api/employees
-•	GET /api/employees/{id}
-•	GET /api/employees/company/{companyId}
-•	GET /api/employees/manager/{managerId}/subordinates
-•	POST /api/employees
-•	PUT /api/employees/{id}
-•	DELETE /api/employees/{id}
+## Liste des Endpoints API
+---
+## Authentication
+•	POST /api/auth/login<br>
+•	POST /api/auth/logout<br>
+## Users
+•	GET /api/users<br>
+•	GET /api/users/{id}<br>
+•	POST /api/users<br>
+•	PUT /api/users/{id}<br>
+•	DELETE /api/users/{id}<br>
+## Roles
+•	GET /api/roles<br>
+•	GET /api/roles/{id}<br>
+•	POST /api/roles<br>
+•	PUT /api/roles/{id}<br>
+•	DELETE /api/roles/{id}<br>
+## Permissions
+•	GET /api/permissions<br>
+•	GET /api/permissions/{id}<br>
+•	POST /api/permissions<br>
+•	PUT /api/permissions/{id}<br>
+•	DELETE /api/permissions/{id}<br>
+## Roles-Permissions
+•	GET /api/roles-permissions/role/{roleId}<br>
+•	POST /api/roles-permissions<br>
+•	DELETE /api/roles-permissions<br>
+## Users-Roles
+•	GET /api/users-roles/user/{userId}<br>
+•	GET /api/users-roles/role/{roleId}<br>
+•	POST /api/users-roles<br>
+•	POST /api/users-roles/bulk-assign<br>
+•	PUT /api/users-roles/replace<br>
+•	DELETE /api/users-roles<br>
+## Companies
+•	GET /api/companies<br>
+•	GET /api/companies/{id}<br>
+•	GET /api/companies/managed-by/{managedByCompanyId}<br>
+•	GET /api/companies/cabinets-experts<br>
+•	POST /api/companies<br>
+•	PUT /api/companies/{id}<br>
+•	DELETE /api/companies/{id}<br>
+## Employees
+•	GET /api/employees<br>
+•	GET /api/employees/{id}<br>
+•	GET /api/employees/company/{companyId}<br>
+•	GET /api/employees/manager/{managerId}/subordinates<br>
+•	POST /api/employees<br>
+•	PUT /api/employees/{id}<br>
+•	DELETE /api/employees/{id}<br>
