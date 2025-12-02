@@ -131,6 +131,47 @@ namespace payzen_backend.Migrations
                     b.ToTable("Company", (string)null);
                 });
 
+            modelBuilder.Entity("payzen_backend.Models.Company.Departement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("DeletedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartementName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("Departement", (string)null);
+                });
+
             modelBuilder.Entity("payzen_backend.Models.Employee.Employee", b =>
                 {
                     b.Property<int>("Id")
@@ -168,6 +209,9 @@ namespace payzen_backend.Migrations
                     b.Property<int?>("DeletedBy")
                         .HasColumnType("int")
                         .HasColumnName("deleted_by");
+
+                    b.Property<int?>("DepartementId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("EducationLevelId")
                         .HasColumnType("int")
@@ -226,6 +270,8 @@ namespace payzen_backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("DepartementId");
 
                     b.HasIndex("ManagerId");
 
@@ -476,6 +522,17 @@ namespace payzen_backend.Migrations
                     b.Navigation("ManagedByCompany");
                 });
 
+            modelBuilder.Entity("payzen_backend.Models.Company.Departement", b =>
+                {
+                    b.HasOne("payzen_backend.Models.Company.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("payzen_backend.Models.Employee.Employee", b =>
                 {
                     b.HasOne("payzen_backend.Models.Company.Company", "Company")
@@ -484,12 +541,19 @@ namespace payzen_backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("payzen_backend.Models.Company.Departement", "Departement")
+                        .WithMany("Employees")
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("payzen_backend.Models.Employee.Employee", "Manager")
                         .WithMany("Subordinates")
                         .HasForeignKey("ManagerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Company");
+
+                    b.Navigation("Departement");
 
                     b.Navigation("Manager");
                 });
@@ -547,6 +611,11 @@ namespace payzen_backend.Migrations
                     b.Navigation("Employees");
 
                     b.Navigation("ManagedCompanies");
+                });
+
+            modelBuilder.Entity("payzen_backend.Models.Company.Departement", b =>
+                {
+                    b.Navigation("Employees");
                 });
 
             modelBuilder.Entity("payzen_backend.Models.Employee.Employee", b =>

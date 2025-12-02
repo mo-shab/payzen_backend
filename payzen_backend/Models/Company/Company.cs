@@ -16,7 +16,7 @@
         public required string Email { get; set; }
         public int? ManagedByCompanyId { get; set; }
         public bool IsCabinetExpert { get; set; } = false;
-        
+
         // Champs d'audit
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public int CreatedBy { get; set; }
@@ -29,5 +29,7 @@
         public Company? ManagedByCompany { get; set; }
         public ICollection<Company>? ManagedCompanies { get; set; }
         public ICollection<Employee.Employee>? Employees { get; set; }
+        public Referentiel.City? City { get; set; }
+        public Referentiel.Country? Country { get; set; }
     }
 }

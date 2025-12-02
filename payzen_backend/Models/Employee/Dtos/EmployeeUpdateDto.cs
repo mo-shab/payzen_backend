@@ -25,6 +25,9 @@ namespace payzen_backend.Models.Employee.Dtos
         [Range(1, int.MaxValue, ErrorMessage = "L'ID de la société doit être valide")]
         public int? CompanyId { get; set; }
 
+        [Range(1, int.MaxValue, ErrorMessage = "L'ID du departement doit être valide")]
+        public int? DepartementId { get; set; }
+
         public int? ManagerId { get; set; }
         public int? StatusId { get; set; }
         public int? GenderId { get; set; }

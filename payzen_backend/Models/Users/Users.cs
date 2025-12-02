@@ -17,7 +17,7 @@ namespace payzen_backend.Models.Users
         public int? UpdatedBy { get; set; }
         public int? DeletedBy { get; set; }
 
-        // 👇 Navigation property pour Employee (IMPORTANT)
+        // Navigation property pour Employee (IMPORTANT)
         public Employee.Employee? Employee { get; set; }
 
         // Vérifier le mot de passe avec BCrypt

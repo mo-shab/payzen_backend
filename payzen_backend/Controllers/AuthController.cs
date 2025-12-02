@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using payzen_backend.Data;
 using payzen_backend.Models.Auth;
@@ -29,6 +30,19 @@ namespace payzen_backend.Controllers
         /// <response code="200">Authentification réussie, retourne le token JWT</response>
         /// <response code="401">Email ou mot de passe incorrect</response>
         /// <response code="400">Données de connexion invalides</response>
+        /// Exemple de requête :
+        /// 
+        ///     POST /api/auth/login
+        ///     {
+        ///         "firstName": "Mohammed",
+        ///         "lastName": "Shab",
+        ///         "cinNumber": "AB123456",
+        ///         "dateOfBirth": "1990-01-01",
+        ///         "phoneNumber": "34567890",
+        ///         "email": "mo.shab@gmail.com",
+        ///         "companyId": 1,
+        ///         "createUserAccount": true,
+        ///     }
         [HttpPost("login")]
         [Produces("application/json")] // Retourne du JSON
         // Retiré [Consumes] pour être plus tolérant
@@ -37,7 +51,6 @@ namespace payzen_backend.Controllers
             // Validation du modèle
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("❌ ModelState invalid:");
                 foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
                 {
                     Console.WriteLine($"   - {error.ErrorMessage}");
@@ -58,7 +71,7 @@ namespace payzen_backend.Controllers
             // Recherche de l'utilisateur avec ses relations Employee
             var user = await _db.Users
                 .AsNoTracking()
-                .Include(u => u.Employee) // 👈 Inclure l'employé si lié
+                .Include(u => u.Employee) // Inclure l'employé si lié
                 .Where(u => u.Email == loginRequest.Email
                         && u.IsActive == true
                         && u.DeletedAt == null)
@@ -81,7 +94,7 @@ namespace payzen_backend.Controllers
                 return Unauthorized(new { Message = "Email ou mot de passe incorrect" });
             }
 
-            // 👇 Récupérer les rôles de l'utilisateur
+            // Récupérer les rôles de l'utilisateur
             var userRoles = await _db.UsersRoles
                 .AsNoTracking()
                 .Where(ur => ur.UserId == user.Id && ur.DeletedAt == null)
@@ -89,7 +102,7 @@ namespace payzen_backend.Controllers
                 .Select(ur => ur.Role.Name)
                 .ToListAsync();
 
-            // 👇 Récupérer toutes les permissions de l'utilisateur via ses rôles
+            // Récupérer toutes les permissions de l'utilisateur via ses rôles
             var userPermissions = await _db.RolesPermissions
                 .AsNoTracking()
                 .Where(rp => _db.UsersRoles
@@ -107,10 +120,7 @@ namespace payzen_backend.Controllers
             var expiresInMinutes = int.Parse(_config["JwtSettings:ExpiresInMinutes"] ?? "120");
             var expiresAt = DateTime.UtcNow.AddMinutes(expiresInMinutes);
 
-            Console.WriteLine("✅ Login successful - Token generated");
-            Console.WriteLine($"✅ ========== END LOGIN ==========\n");
-
-            // 👇 Créer la réponse avec toutes les informations
+            // Créer la réponse avec toutes les informations
             var response = new LoginResponse
             {
                 Message = "Authentification réussie",
@@ -139,6 +149,74 @@ namespace payzen_backend.Controllers
         public IActionResult Logout()
         {
             return Ok(new { Message = "Déconnexion réussie. Veuillez supprimer le token côté client." });
+        }
+
+        /// <summary>
+        /// Route /me pour obtenir les informations de l'utilisateur actuel
+        /// </summary>
+        [HttpGet("me")]
+        [Authorize]
+        [Produces("application/json")]
+        public async Task<IActionResult> GetMe()
+        {
+            // Récupérer le userId depuis les claims du token JWT
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+            
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { Message = "Utilisateur non authentifié" });
+            }
+
+            if (!int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return BadRequest(new { Message = "ID utilisateur invalide" });
+            }
+
+            // Récupérer l'utilisateur avec ses relations
+            var user = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "Utilisateur non trouvé" });
+            }
+
+            // Récupérer les rôles de l'utilisateur
+            var userRoles = await _db.UsersRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == user.Id && ur.DeletedAt == null)
+                .Include(ur => ur.Role)
+                .Where(ur => ur.Role.DeletedAt == null)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
+
+            // Récupérer les permissions de l'utilisateur via ses rôles
+            var userPermissions = await _db.RolesPermissions
+                .AsNoTracking()
+                .Where(rp => _db.UsersRoles
+                    .Where(ur => ur.UserId == user.Id && ur.DeletedAt == null)
+                    .Select(ur => ur.RoleId)
+                    .Contains(rp.RoleId) && rp.DeletedAt == null)
+                .Include(rp => rp.Permission)
+                .Where(rp => rp.Permission.DeletedAt == null)
+                .Select(rp => rp.Permission.Name)
+                .Distinct()
+                .ToListAsync();
+
+            var userInfo = new UserInfo
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Username = user.Username,
+                FirstName = user.Employee?.FirstName ?? "",
+                LastName = user.Employee?.LastName ?? "",
+                Roles = userRoles,
+                Permissions = userPermissions
+            };
+
+            return Ok(userInfo);
         }
     }
 }

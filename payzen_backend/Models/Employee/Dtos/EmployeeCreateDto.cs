@@ -34,6 +34,9 @@ namespace payzen_backend.Models.Employee.Dtos
         [Required(ErrorMessage = "L'ID de la société est requis")]
         [Range(1, int.MaxValue, ErrorMessage = "L'ID de la société doit être valide")]
         public required int CompanyId { get; set; }
+        [Required(ErrorMessage = "L'ID du département est requis")]
+        [Range(1, int.MaxValue, ErrorMessage = "L'ID du département doit être valide")]
+        public required int DepartementId { get; set; }
 
         public int? ManagerId { get; set; } = null;
         public int? StatusId { get; set; }

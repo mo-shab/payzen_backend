@@ -182,5 +182,18 @@ namespace payzen_backend.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Calculer le nombre total de permissions actives
+        /// </summary>
+        [HttpGet("count")]
+        public async Task<ActionResult<int>> GetCount()
+        {
+            var count = await _db.Permissions
+                .AsNoTracking()
+                .Where(p => p.DeletedAt == null)
+                .CountAsync();
+            return Ok(count);
+        }
     }
 }

@@ -38,6 +38,7 @@ namespace payzen_backend.Controllers
                 .Where(e => e.DeletedAt == null)
                 .Include(e => e.Company)
                 .Include(e => e.Manager)
+                .Include(e => e.Departement)
                 .OrderBy(e => e.LastName)
                 .ThenBy(e => e.FirstName)
                 .ToListAsync();
@@ -53,6 +54,8 @@ namespace payzen_backend.Controllers
                 Email = e.Email,
                 CompanyId = e.CompanyId,
                 CompanyName = e.Company?.CompanyName ?? "",
+                DepartementId = e.DepartementId,
+                DepartementName = e.Departement?.DepartementName,
                 ManagerId = e.ManagerId,
                 ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
                 StatusId = e.StatusId,
@@ -78,6 +81,7 @@ namespace payzen_backend.Controllers
                 .Where(e => e.DeletedAt == null)
                 .Include(e => e.Company)
                 .Include(e => e.Manager)
+                .Include(e => e.Departement)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (employee == null)
@@ -94,6 +98,8 @@ namespace payzen_backend.Controllers
                 Email = employee.Email,
                 CompanyId = employee.CompanyId,
                 CompanyName = employee.Company?.CompanyName ?? "",
+                DepartementId = employee.DepartementId,
+                DepartementName = employee.Departement?.DepartementName,
                 ManagerId = employee.ManagerId,
                 ManagerName = employee.Manager != null ? $"{employee.Manager.FirstName} {employee.Manager.LastName}" : null,
                 StatusId = employee.StatusId,
@@ -123,6 +129,7 @@ namespace payzen_backend.Controllers
                 .Where(e => e.CompanyId == companyId && e.DeletedAt == null)
                 .Include(e => e.Company)
                 .Include(e => e.Manager)
+                .Include(e => e.Departement)
                 .OrderBy(e => e.LastName)
                 .ThenBy(e => e.FirstName)
                 .ToListAsync();
@@ -138,6 +145,55 @@ namespace payzen_backend.Controllers
                 Email = e.Email,
                 CompanyId = e.CompanyId,
                 CompanyName = e.Company?.CompanyName ?? "",
+                DepartementId = e.DepartementId,
+                DepartementName = e.Departement?.DepartementName,
+                ManagerId = e.ManagerId,
+                ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
+                StatusId = e.StatusId,
+                GenderId = e.GenderId,
+                NationalityId = e.NationalityId,
+                EducationLevelId = e.EducationLevelId,
+                MaritalStatusId = e.MaritalStatusId,
+                CreatedAt = e.CreatedAt.DateTime
+            });
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Récupère tous les employés d'un département
+        /// </summary>
+        [HttpGet("departement/{departementId}")]
+        [HasPermission(VIEW_COMPANY_EMPLOYEES)]
+        public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetByDepartementId(int departementId)
+        {
+            var departementExists = await _db.Departement.AnyAsync(d => d.Id == departementId && d.DeletedAt == null);
+            if (!departementExists)
+                return NotFound(new { Message = "Département non trouvé" });
+
+            var employees = await _db.Employees
+                .AsNoTracking()
+                .Where(e => e.DepartementId == departementId && e.DeletedAt == null)
+                .Include(e => e.Company)
+                .Include(e => e.Manager)
+                .Include(e => e.Departement)
+                .OrderBy(e => e.LastName)
+                .ThenBy(e => e.FirstName)
+                .ToListAsync();
+
+            var result = employees.Select(e => new EmployeeReadDto
+            {
+                Id = e.Id,
+                FirstName = e.FirstName,
+                LastName = e.LastName,
+                CinNumber = e.CinNumber,
+                DateOfBirth = e.DateOfBirth,
+                Phone = e.Phone,
+                Email = e.Email,
+                CompanyId = e.CompanyId,
+                CompanyName = e.Company?.CompanyName ?? "",
+                DepartementId = e.DepartementId,
+                DepartementName = e.Departement?.DepartementName,
                 ManagerId = e.ManagerId,
                 ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
                 StatusId = e.StatusId,
@@ -166,6 +222,7 @@ namespace payzen_backend.Controllers
                 .AsNoTracking()
                 .Where(e => e.ManagerId == managerId && e.DeletedAt == null)
                 .Include(e => e.Company)
+                .Include(e => e.Departement)
                 .OrderBy(e => e.LastName)
                 .ThenBy(e => e.FirstName)
                 .ToListAsync();
@@ -181,6 +238,8 @@ namespace payzen_backend.Controllers
                 Email = e.Email,
                 CompanyId = e.CompanyId,
                 CompanyName = e.Company?.CompanyName ?? "",
+                DepartementId = e.DepartementId,
+                DepartementName = e.Departement?.DepartementName,
                 ManagerId = e.ManagerId,
                 StatusId = e.StatusId,
                 GenderId = e.GenderId,
@@ -209,6 +268,17 @@ namespace payzen_backend.Controllers
             var companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId && c.DeletedAt == null);
             if (!companyExists)
                 return NotFound(new { Message = "Société non trouvée" });
+
+            // Vérifier que le département existe et appartient à la bonne société
+            var departement = await _db.Departement
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == dto.DepartementId && d.DeletedAt == null);
+
+            if (departement == null)
+                return NotFound(new { Message = "Département non trouvé" });
+
+            if (departement.CompanyId != dto.CompanyId)
+                return BadRequest(new { Message = "Le département ne correspond pas à la société spécifiée" });
 
             // Vérifier que le CIN n'existe pas déjà
             if (await _db.Employees.AnyAsync(e => e.CinNumber == dto.CinNumber && e.DeletedAt == null))
@@ -240,6 +310,7 @@ namespace payzen_backend.Controllers
                 Phone = dto.Phone,
                 Email = dto.Email,
                 CompanyId = dto.CompanyId,
+                DepartementId = dto.DepartementId,
                 ManagerId = dto.ManagerId,
                 StatusId = dto.StatusId,
                 GenderId = dto.GenderId,
@@ -253,7 +324,7 @@ namespace payzen_backend.Controllers
             _db.Employees.Add(employee);
             await _db.SaveChangesAsync();
 
-            // 👇 NOUVEAU : Créer automatiquement un compte utilisateur si demandé
+            // Créer automatiquement un compte utilisateur si demandé
             string? temporaryPassword = null;
             Users? createdUser = null;
 
@@ -276,7 +347,7 @@ namespace payzen_backend.Controllers
                 // Créer le compte utilisateur
                 createdUser = new Users
                 {
-                    EmployeeId = employee.Id, // 👈 Lier à l'employé
+                    EmployeeId = employee.Id,
                     Username = username,
                     Email = dto.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword),
@@ -288,7 +359,7 @@ namespace payzen_backend.Controllers
                 _db.Users.Add(createdUser);
                 await _db.SaveChangesAsync();
 
-                Console.WriteLine($"✅ User créé automatiquement - Username: {username}, Email: {dto.Email}");
+                Console.WriteLine($"User créé automatiquement - Username: {username}, Email: {dto.Email}");
             }
 
             // Récupérer l'employé créé avec ses relations
@@ -296,6 +367,7 @@ namespace payzen_backend.Controllers
                 .AsNoTracking()
                 .Include(e => e.Company)
                 .Include(e => e.Manager)
+                .Include(e => e.Departement)
                 .FirstAsync(e => e.Id == employee.Id);
 
             var readDto = new EmployeeReadDto
@@ -309,6 +381,8 @@ namespace payzen_backend.Controllers
                 Email = createdEmployee.Email,
                 CompanyId = createdEmployee.CompanyId,
                 CompanyName = createdEmployee.Company?.CompanyName ?? "",
+                DepartementId = createdEmployee.DepartementId,
+                DepartementName = createdEmployee.Departement?.DepartementName,
                 ManagerId = createdEmployee.ManagerId,
                 ManagerName = createdEmployee.Manager != null ? $"{createdEmployee.Manager.FirstName} {createdEmployee.Manager.LastName}" : null,
                 StatusId = createdEmployee.StatusId,
@@ -329,7 +403,7 @@ namespace payzen_backend.Controllers
                     {
                         Username = createdUser.Username,
                         Email = createdUser.Email,
-                        TemporaryPassword = temporaryPassword, // À envoyer par email en production
+                        TemporaryPassword = temporaryPassword,
                         Message = "Un compte utilisateur a été créé. Le mot de passe temporaire doit être changé lors de la première connexion."
                     }
                 });
@@ -395,6 +469,24 @@ namespace payzen_backend.Controllers
                 employee.CompanyId = dto.CompanyId.Value;
             }
 
+            // Gestion du DepartementId
+            if (dto.DepartementId.HasValue)
+            {
+                var departement = await _db.Departement
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.Id == dto.DepartementId && d.DeletedAt == null);
+
+                if (departement == null)
+                    return NotFound(new { Message = "Département non trouvé" });
+
+                // Vérifier que le département appartient à la société de l'employé
+                var currentCompanyId = dto.CompanyId ?? employee.CompanyId;
+                if (departement.CompanyId != currentCompanyId)
+                    return BadRequest(new { Message = "Le département ne correspond pas à la société de l'employé" });
+
+                employee.DepartementId = dto.DepartementId.Value;
+            }
+
             if (dto.ManagerId.HasValue)
             {
                 if (dto.ManagerId.Value == id)
@@ -432,6 +524,7 @@ namespace payzen_backend.Controllers
                 .AsNoTracking()
                 .Include(e => e.Company)
                 .Include(e => e.Manager)
+                .Include(e => e.Departement)
                 .FirstAsync(e => e.Id == id);
 
             var readDto = new EmployeeReadDto
@@ -445,6 +538,8 @@ namespace payzen_backend.Controllers
                 Email = updatedEmployee.Email,
                 CompanyId = updatedEmployee.CompanyId,
                 CompanyName = updatedEmployee.Company?.CompanyName ?? "",
+                DepartementId = updatedEmployee.DepartementId,
+                DepartementName = updatedEmployee.Departement?.DepartementName,
                 ManagerId = updatedEmployee.ManagerId,
                 ManagerName = updatedEmployee.Manager != null ? $"{updatedEmployee.Manager.FirstName} {updatedEmployee.Manager.LastName}" : null,
                 StatusId = updatedEmployee.StatusId,

@@ -44,5 +44,12 @@ namespace payzen_backend.Models.Permissions
         public const string VIEW_COMPANY_EMPLOYEES = "VIEW_COMPANY_EMPLOYEES";
         public const string VIEW_SUBORDINATES = "VIEW_SUBORDINATES";
         public const string MANAGE_EMPLOYEE_MANAGER = "MANAGE_EMPLOYEE_MANAGER";
+
+        // ==================== DEPARTMENTS ====================
+        public const string READ_DEPARTMENTS = "READ_DEPARTMENTS";
+        public const string VIEW_DEPARTMENT = "VIEW_DEPARTMENT";
+        public const string CREATE_DEPARTMENT = "CREATE_DEPARTMENT";
+        public const string EDIT_DEPARTMENT = "EDIT_DEPARTMENT";
+        public const string DELETE_DEPARTMENT = "DELETE_DEPARTMENT";
     }
 }

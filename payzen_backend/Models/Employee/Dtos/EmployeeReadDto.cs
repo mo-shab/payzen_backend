@@ -13,6 +13,8 @@ namespace payzen_backend.Models.Employee.Dtos
         public string Email { get; set; } = string.Empty;
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
+        public int? DepartementId { get; set; }
+        public string? DepartementName { get; set; } = string.Empty;
         public int? ManagerId { get; set; }
         public string? ManagerName { get; set; }
         public int? StatusId { get; set; }

@@ -4,6 +4,7 @@ namespace payzen_backend.Models.Users.Dtos
 {
     public class UserUpdateDto
     {
+
         [StringLength(50, MinimumLength = 3, ErrorMessage = "Le nom d'utilisateur doit contenir entre 3 et 50 caractères")]
         public string? Username { get; set; }
 
