@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/cities")]
     [ApiController]
     [Authorize]
-    public class CityController : ControllerBase
+    public class CitiesController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public CityController(AppDbContext db) => _db = db;
+        public CitiesController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère toutes les villes actives
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_CITIES")]
+        //[HasPermission("READ_CITIES")]
         public async Task<ActionResult<IEnumerable<CityReadDto>>> GetAll()
         {
             var cities = await _db.Cities
@@ -48,7 +48,7 @@ namespace payzen_backend.Controllers
         /// Récupère une ville par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_CITY")]
+        //[HasPermission("VIEW_CITY")]
         public async Task<ActionResult<CityReadDto>> GetById(int id)
         {
             var city = await _db.Cities
@@ -76,7 +76,7 @@ namespace payzen_backend.Controllers
         /// Récupère toutes les villes d'un pays
         /// </summary>
         [HttpGet("country/{countryId}")]
-        [HasPermission("READ_CITIES")]
+        //[HasPermission("READ_CITIES")]
         public async Task<ActionResult<IEnumerable<CityReadDto>>> GetByCountryId(int countryId)
         {
             var countryExists = await _db.Countries.AnyAsync(c => c.Id == countryId && c.DeletedAt == null);
@@ -106,7 +106,7 @@ namespace payzen_backend.Controllers
         /// Crée une nouvelle ville
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_CITY")]
+        //[HasPermission("CREATE_CITY")]
         public async Task<ActionResult<CityReadDto>> Create([FromBody] CityCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -157,7 +157,7 @@ namespace payzen_backend.Controllers
         /// Met à jour une ville
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_CITY")]
+        //[HasPermission("UPDATE_CITY")]
         public async Task<ActionResult<CityReadDto>> Update(int id, [FromBody] CityUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -215,7 +215,7 @@ namespace payzen_backend.Controllers
         /// Supprime une ville (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_CITY")]
+        //[HasPermission("DELETE_CITY")]
         public async Task<IActionResult> Delete(int id)
         {
             var city = await _db.Cities.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);

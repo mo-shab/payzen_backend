@@ -30,7 +30,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les employés actifs
         /// </summary>
         [HttpGet]
-        [HasPermission(READ_EMPLOYEES)]
+        //[HasPermission(READ_EMPLOYEES)]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetAll()
         {
             var employees = await _db.Employees
@@ -73,7 +73,7 @@ namespace payzen_backend.Controllers
         /// Récupère un employé par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission(VIEW_EMPLOYEE)]
+        //[HasPermission(VIEW_EMPLOYEE)]
         public async Task<ActionResult<EmployeeReadDto>> GetById(int id)
         {
             var employee = await _db.Employees
@@ -117,7 +117,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les employés d'une société
         /// </summary>
         [HttpGet("company/{companyId}")]
-        [HasPermission(VIEW_COMPANY_EMPLOYEES)]
+        //[HasPermission(VIEW_COMPANY_EMPLOYEES)]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetByCompanyId(int companyId)
         {
             var companyExists = await _db.Companies.AnyAsync(c => c.Id == companyId && c.DeletedAt == null);
@@ -164,7 +164,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les employés d'un département
         /// </summary>
         [HttpGet("departement/{departementId}")]
-        [HasPermission(VIEW_COMPANY_EMPLOYEES)]
+        //[HasPermission(VIEW_COMPANY_EMPLOYEES)]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetByDepartementId(int departementId)
         {
             var departementExists = await _db.Departement.AnyAsync(d => d.Id == departementId && d.DeletedAt == null);
@@ -211,7 +211,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les subordonnés d'un manager
         /// </summary>
         [HttpGet("manager/{managerId}/subordinates")]
-        [HasPermission(VIEW_SUBORDINATES)]
+        //[HasPermission(VIEW_SUBORDINATES)]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetSubordinates(int managerId)
         {
             var managerExists = await _db.Employees.AnyAsync(e => e.Id == managerId && e.DeletedAt == null);
@@ -256,7 +256,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouvel employé et un compte utilisateur associé
         /// </summary>
         [HttpPost]
-        [HasPermission(CREATE_EMPLOYEE)]
+        //[HasPermission(CREATE_EMPLOYEE)]
         public async Task<ActionResult<EmployeeReadDto>> Create([FromBody] EmployeeCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -416,7 +416,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un employé
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission(EDIT_EMPLOYEE)]
+        //[HasPermission(EDIT_EMPLOYEE)]
         public async Task<ActionResult<EmployeeReadDto>> Update(int id, [FromBody] EmployeeUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -557,7 +557,7 @@ namespace payzen_backend.Controllers
         /// Supprime un employé (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission(DELETE_EMPLOYEE)]
+        //[HasPermission(DELETE_EMPLOYEE)]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = User.GetUserId();

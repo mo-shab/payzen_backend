@@ -51,5 +51,35 @@ namespace payzen_backend.Models.Permissions
         public const string CREATE_DEPARTMENT = "CREATE_DEPARTMENT";
         public const string EDIT_DEPARTMENT = "EDIT_DEPARTMENT";
         public const string DELETE_DEPARTMENT = "DELETE_DEPARTMENT";
+
+        // ==================== ContractTypes ====================
+        public const string READ_CONTRACT_TYPES = "READ_CONTRACT_TYPES";
+        public const string VIEW_CONTRACT_TYPE = "VIEW_CONTRACT_TYPE";
+        public const string CREATE_CONTRACT_TYPE = "CREATE_CONTRACT_TYPE";
+        public const string EDIT_CONTRACT_TYPE = "EDIT_CONTRACT_TYPE";
+        public const string DELETE_CONTRACT_TYPE = "DELETE_CONTRACT_TYPE";
+
+        // ==================== Countries ====================
+        public const string READ_COUNTRIES = "READ_COUNTRIES";
+        public const string VIEW_COUNTRY = "VIEW_COUNTRY";
+        public const string CREATE_COUNTRY = "CREATE_COUNTRY";
+        public const string EDIT_COUNTRY = "EDIT_COUNTRY";
+        public const string DELETE_COUNTRY = "DELETE_COUNTRY";
+
+        // ==================== Cities ====================
+        public const string READ_CITIES = "READ_CITIES";
+        public const string VIEW_CITY = "VIEW_CITY";
+        public const string CREATE_CITY = "CREATE_CITY";
+        public const string EDIT_CITY = "EDIT_CITY";
+        public const string DELETE_CITY = "DELETE_CITY";
+
+        // ==================== Employee Addresses ====================
+        public const string READ_EMPLOYEE_ADDRESSES = "READ_EMPLOYEE_ADDRESSES";
+        public const string VIEW_EMPLOYEE_ADDRESS = "VIEW_EMPLOYEE_ADDRESS";
+        public const string CREATE_EMPLOYEE_ADDRESS = "CREATE_EMPLOYEE_ADDRESS";
+        public const string UPDATE_EMPLOYEE_ADDRESS = "UPDATE_EMPLOYEE_ADDRESS";
+        public const string DELETE_EMPLOYEE_ADDRESS = "DELETE_EMPLOYEE_ADDRESS";
+
+
     }
 }

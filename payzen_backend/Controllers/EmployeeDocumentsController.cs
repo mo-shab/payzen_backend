@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/employee-documents")]
     [ApiController]
     [Authorize]
-    public class EmployeeDocumentController : ControllerBase
+    public class EmployeeDocumentsController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public EmployeeDocumentController(AppDbContext db) => _db = db;
+        public EmployeeDocumentsController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les documents
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_EMPLOYEE_DOCUMENTS")]
+        //[HasPermission("READ_EMPLOYEE_DOCUMENTS")]
         public async Task<ActionResult<IEnumerable<EmployeeDocumentReadDto>>> GetAll()
         {
             var documents = await _db.EmployeeDocuments
@@ -52,7 +52,7 @@ namespace payzen_backend.Controllers
         /// Récupère un document par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_EMPLOYEE_DOCUMENT")]
+        //[HasPermission("VIEW_EMPLOYEE_DOCUMENT")]
         public async Task<ActionResult<EmployeeDocumentReadDto>> GetById(int id)
         {
             var document = await _db.EmployeeDocuments
@@ -83,7 +83,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les documents d'un employé
         /// </summary>
         [HttpGet("employee/{employeeId}")]
-        [HasPermission("VIEW_EMPLOYEE_DOCUMENT")]
+        //[HasPermission("VIEW_EMPLOYEE_DOCUMENT")]
         public async Task<ActionResult<IEnumerable<EmployeeDocumentReadDto>>> GetByEmployeeId(int employeeId)
         {
             var employeeExists = await _db.Employees.AnyAsync(e => e.Id == employeeId && e.DeletedAt == null);
@@ -116,7 +116,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau document
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_EMPLOYEE_DOCUMENT")]
+        //[HasPermission("CREATE_EMPLOYEE_DOCUMENT")]
         public async Task<ActionResult<EmployeeDocumentReadDto>> Create([FromBody] EmployeeDocumentCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -168,7 +168,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un document
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_EMPLOYEE_DOCUMENT")]
+        //[HasPermission("UPDATE_EMPLOYEE_DOCUMENT")]
         public async Task<ActionResult<EmployeeDocumentReadDto>> Update(int id, [FromBody] EmployeeDocumentUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -223,7 +223,7 @@ namespace payzen_backend.Controllers
         /// Supprime un document (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_EMPLOYEE_DOCUMENT")]
+        //[HasPermission("DELETE_EMPLOYEE_DOCUMENT")]
         public async Task<IActionResult> Delete(int id)
         {
             var document = await _db.EmployeeDocuments.FirstOrDefaultAsync(ed => ed.Id == id && ed.DeletedAt == null);

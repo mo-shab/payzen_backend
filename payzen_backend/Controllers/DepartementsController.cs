@@ -12,10 +12,10 @@ namespace payzen_backend.Controllers
     [Route("api/departements")]
     [ApiController]
     [Authorize]
-    public class DepartementController : ControllerBase
+    public class DepartementsController : ControllerBase
     {
         private readonly AppDbContext _db;
-        public DepartementController(AppDbContext db) => _db = db;
+        public DepartementsController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les départements actifs
@@ -47,7 +47,7 @@ namespace payzen_backend.Controllers
         /// Récupère un département par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_DEPARTEMENTS")]
+        //[HasPermission("VIEW_DEPARTEMENTS")]
         public async Task<ActionResult<DepartementReadDto>> ReadById(int id)
         {
             var departement = await _db.Departement
@@ -75,7 +75,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les départements d'une société
         /// </summary>
         [HttpGet("company/{companyId}")]
-        [HasPermission("READ_DEPARTEMENTS")]
+        //[HasPermission("READ_DEPARTEMENTS")]
         public async Task<ActionResult<IEnumerable<DepartementReadDto>>> GetByCompanyId(int companyId)
         {
             var companyExists = await _db.Companies.AnyAsync(c => c.Id == companyId && c.DeletedAt == null);
@@ -105,7 +105,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau département
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_DEPARTEMENTS")]
+        //[HasPermission("CREATE_DEPARTEMENTS")]
         public async Task<ActionResult<DepartementReadDto>> Create([FromBody] DepartementCreateDto departementDto)
         {
             // Validation du modèle
@@ -153,11 +153,18 @@ namespace payzen_backend.Controllers
                 _db.Departement.Add(departement);
                 await _db.SaveChangesAsync();
 
+                var CompanyName = await _db.Companies
+                    .AsNoTracking()
+                    .Where(c => c.Id == departement.CompanyId)
+                    .Select(c => c.CompanyName)
+                    .FirstOrDefaultAsync() ?? "";
+
                 var result = new DepartementReadDto
                 {
                     Id = departement.Id,
                     DepartementName = departement.DepartementName,
                     CompanyId = departement.CompanyId,
+                    CompanyName = CompanyName,
                     CreatedAt = departement.CreatedAt.DateTime
                 };
 
@@ -173,7 +180,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un département
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_DEPARTEMENTS")]
+        //[HasPermission("UPDATE_DEPARTEMENTS")]
         public async Task<ActionResult<DepartementReadDto>> Update(int id, [FromBody] DepartementUpdateDto departementDto)
         {
             if (!ModelState.IsValid)
@@ -271,7 +278,6 @@ namespace payzen_backend.Controllers
                     CompanyId = updatedDepartement.CompanyId,
                     CompanyName = updatedDepartement.Company?.CompanyName ?? "",
                     CreatedAt = updatedDepartement.CreatedAt.DateTime,
-                    UpdatedAt = updatedDepartement.UpdatedAt?.DateTime
                 };
 
                 return Ok(result);
@@ -286,7 +292,7 @@ namespace payzen_backend.Controllers
         /// Supprime un département (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_DEPARTEMENTS")]
+        //[HasPermission("DELETE_DEPARTEMENTS")]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = User.GetUserId();

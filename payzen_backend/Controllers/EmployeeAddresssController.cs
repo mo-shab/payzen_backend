@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/employee-addresses")]
     [ApiController]
     [Authorize]
-    public class EmployeeAddressController : ControllerBase
+    public class EmployeeAddresssController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public EmployeeAddressController(AppDbContext db) => _db = db;
+        public EmployeeAddresssController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère toutes les adresses d'employés
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_EMPLOYEE_ADDRESSES")]
+        //[HasPermission("READ_EMPLOYEE_ADDRESSES")]
         public async Task<ActionResult<IEnumerable<EmployeeAddressReadDto>>> GetAll()
         {
             var addresses = await _db.EmployeeAddresses
@@ -58,7 +58,7 @@ namespace payzen_backend.Controllers
         /// Récupère une adresse par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_EMPLOYEE_ADDRESS")]
+        //[HasPermission("VIEW_EMPLOYEE_ADDRESS")]
         public async Task<ActionResult<EmployeeAddressReadDto>> GetById(int id)
         {
             var address = await _db.EmployeeAddresses
@@ -95,7 +95,7 @@ namespace payzen_backend.Controllers
         /// Récupère toutes les adresses d'un employé
         /// </summary>
         [HttpGet("employee/{employeeId}")]
-        [HasPermission("VIEW_EMPLOYEE_ADDRESS")]
+        //[HasPermission("VIEW_EMPLOYEE_ADDRESS")]
         public async Task<ActionResult<IEnumerable<EmployeeAddressReadDto>>> GetByEmployeeId(int employeeId)
         {
             var employeeExists = await _db.Employees.AnyAsync(e => e.Id == employeeId && e.DeletedAt == null);
@@ -134,7 +134,7 @@ namespace payzen_backend.Controllers
         /// Crée une nouvelle adresse pour un employé
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_EMPLOYEE_ADDRESS")]
+        //[HasPermission("CREATE_EMPLOYEE_ADDRESS")]
         public async Task<ActionResult<EmployeeAddressReadDto>> Create([FromBody] EmployeeAddressCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -209,7 +209,7 @@ namespace payzen_backend.Controllers
         /// Met à jour une adresse
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_EMPLOYEE_ADDRESS")]
+        //[HasPermission("UPDATE_EMPLOYEE_ADDRESS")]
         public async Task<ActionResult<EmployeeAddressReadDto>> Update(int id, [FromBody] EmployeeAddressUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -291,7 +291,7 @@ namespace payzen_backend.Controllers
         /// Supprime une adresse (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_EMPLOYEE_ADDRESS")]
+        //[HasPermission("DELETE_EMPLOYEE_ADDRESS")]
         public async Task<IActionResult> Delete(int id)
         {
             var address = await _db.EmployeeAddresses.FirstOrDefaultAsync(ea => ea.Id == id && ea.DeletedAt == null);

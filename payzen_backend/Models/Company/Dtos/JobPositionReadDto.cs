@@ -1,9 +1,9 @@
-﻿namespace payzen_backend.Models.Company.Dtos
+namespace payzen_backend.Models.Company.Dtos
 {
-    public class ContractTypeReadDto
+    public class JobPositionReadDto
     {
         public int Id { get; set; }
-        public string ContractTypeName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
         public DateTime CreatedAt { get; set; }

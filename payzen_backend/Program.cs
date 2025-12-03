@@ -20,6 +20,7 @@ builder.Services.AddOpenApi(options =>
     options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
 });
 
+
 // Configuration de la base de données
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string not found");
@@ -55,42 +56,6 @@ builder.Services
             NameClaimType = "unique_name",
             RoleClaimType = "role"
         };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = context =>
-            {
-                Console.WriteLine($"\n✅ ========== TOKEN VALIDE ==========");
-                var claims = context.Principal?.Claims;
-                if (claims != null)
-                {
-                    foreach (var claim in claims)
-                    {
-                        Console.WriteLine($"✅ Claim: {claim.Type} = {claim.Value}");
-                    }
-                }
-                
-                var userId = context.Principal?.FindFirst("uid")?.Value;
-                var email = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-                Console.WriteLine($"👤 User ID: {userId}");
-                Console.WriteLine($"👤 Email: {email}");
-                Console.WriteLine($"✅ ========== FIN VALIDATION ==========\n");
-                
-                return Task.CompletedTask;
-            },
-            
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"\n❌ Authentication failed: {context.Exception.Message}");
-                return Task.CompletedTask;
-            },
-            
-            OnChallenge = context =>
-            {
-                Console.WriteLine($"\n⚠️ Challenge: {context.Error} - {context.ErrorDescription}");
-                return Task.CompletedTask;
-            }
-        };
     });
 
 builder.Services.AddScoped<JwtService>();
@@ -110,34 +75,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseCors();
-
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/api"))
-    {
-        Console.WriteLine($"\n🔍 ========== REQUEST ==========");
-        Console.WriteLine($"🔍 Method: {context.Request.Method}");
-        Console.WriteLine($"🔍 Path: {context.Request.Path}");
-        Console.WriteLine($"🔍 Content-Type: {context.Request.ContentType}");
-        Console.WriteLine($"🔍 Content-Length: {context.Request.ContentLength}");
-        
-        var authHeader = context.Request.Headers.Authorization.ToString();
-        Console.WriteLine($"🔍 Authorization présent: {!string.IsNullOrEmpty(authHeader)}");
-        
-        if (!string.IsNullOrEmpty(authHeader))
-        {
-            Console.WriteLine($"🔍 Auth Header: {authHeader.Substring(0, Math.Min(50, authHeader.Length))}...");
-        }
-        Console.WriteLine($"🔍 ========== END REQUEST ==========\n");
-    }
-    await next();
-});
 
 app.UseAuthentication();
 app.UseAuthorization();

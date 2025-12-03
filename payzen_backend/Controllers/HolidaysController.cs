@@ -12,11 +12,11 @@ namespace payzen_backend.Controllers
     [Route("api/holidays")]
     [ApiController]
     [Authorize]
-    public class HolidayController : ControllerBase
+    public class HolidaysController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public HolidayController(AppDbContext db) => _db = db;
+        public HolidaysController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les jours fériés actifs

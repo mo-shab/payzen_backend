@@ -23,7 +23,7 @@ namespace payzen_backend.Controllers
         /// Récupère toutes les sociétés actives
         /// </summary>
         [HttpGet]
-        [HasPermission(READ_COMPANIES)]
+        //[HasPermission(READ_COMPANIES)]
         public async Task<ActionResult<IEnumerable<CompanyReadDto>>> GetAll()
         {
             var companies = await _db.Companies
@@ -60,7 +60,7 @@ namespace payzen_backend.Controllers
         /// Récupère une société par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission(VIEW_COMPANY)]
+        //[HasPermission(VIEW_COMPANY)]
         public async Task<ActionResult<CompanyReadDto>> GetById(int id)
         {
             var company = await _db.Companies
@@ -99,7 +99,7 @@ namespace payzen_backend.Controllers
         /// Récupère toutes les sociétés gérées par une société (expert-comptable)
         /// </summary>
         [HttpGet("managed-by/{managedByCompanyId}")]
-        [HasPermission(VIEW_MANAGED_COMPANIES)]
+        //[HasPermission(VIEW_MANAGED_COMPANIES)]
         public async Task<ActionResult<IEnumerable<CompanyReadDto>>> GetManagedCompanies(int managedByCompanyId)
         {
             var managerCompanyExists = await _db.Companies.AnyAsync(c => c.Id == managedByCompanyId && c.DeletedAt == null);
@@ -138,7 +138,7 @@ namespace payzen_backend.Controllers
         /// Récupère toutes les sociétés qui sont des cabinets d'experts
         /// </summary>
         [HttpGet("cabinets-experts")]
-        [HasPermission(VIEW_CABINET_EXPERTS)]
+        //[HasPermission(VIEW_CABINET_EXPERTS)]
         public async Task<ActionResult<IEnumerable<CompanyReadDto>>> GetCabinetsExperts()
         {
             var companies = await _db.Companies
@@ -173,7 +173,7 @@ namespace payzen_backend.Controllers
         /// Crée une nouvelle société
         /// </summary>
         [HttpPost]
-        [HasPermission(CREATE_COMPANY)]
+        //[HasPermission(CREATE_COMPANY)]
         public async Task<ActionResult<CompanyReadDto>> Create([FromBody] CompanyCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -254,7 +254,7 @@ namespace payzen_backend.Controllers
         /// Met à jour une société
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission(EDIT_COMPANY)]
+        //[HasPermission(EDIT_COMPANY)]
         public async Task<ActionResult<CompanyReadDto>> Update(int id, [FromBody] CompanyUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -368,7 +368,7 @@ namespace payzen_backend.Controllers
         /// Supprime une société (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission(DELETE_COMPANY)]
+        //[HasPermission(DELETE_COMPANY)]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = User.GetUserId();

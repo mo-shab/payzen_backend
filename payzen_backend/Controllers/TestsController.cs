@@ -7,12 +7,12 @@ namespace payzen_backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TestController : ControllerBase
+    public class TestsController : ControllerBase
     {
         private readonly AppDbContext _db;
         private readonly IConfiguration _configuration;
 
-        public TestController(AppDbContext db, IConfiguration configuration)
+        public TestsController(AppDbContext db, IConfiguration configuration)
         {
             _db = db;
             _configuration = configuration;

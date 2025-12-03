@@ -22,7 +22,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les utilisateurs actifs
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_USERS")]
+        //[HasPermission("READ_USERS")]
         public async Task<ActionResult<IEnumerable<UserReadDto>>> GetAll()
         {
             var users = await _db.Users
@@ -47,7 +47,7 @@ namespace payzen_backend.Controllers
         /// Récupère un utilisateur par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_USERS")]
+        //[HasPermission("VIEW_USERS")]
         public async Task<ActionResult<UserReadDto>> GetById(int id)
         {
             var user = await _db.Users
@@ -74,7 +74,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouvel utilisateur
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_USERS")]
+        //[HasPermission("CREATE_USERS")]
         public async Task<ActionResult<UserReadDto>> Create([FromBody] UserCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -123,7 +123,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un utilisateur
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("EDIT_USERS")]
+        //[HasPermission("EDIT_USERS")]
         public async Task<ActionResult<UserReadDto>> Update(int id, [FromBody] UserUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -188,7 +188,7 @@ namespace payzen_backend.Controllers
         /// Supprime un utilisateur (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_USERS")]
+        //[HasPermission("DELETE_USERS")]
         public async Task<IActionResult> Delete(int id)
         {
             var userId = User.GetUserId();

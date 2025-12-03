@@ -322,8 +322,8 @@ namespace payzen_backend.Data
                 entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
                 entity.Property(e => e.DeletedBy).HasColumnName("deleted_by");
 
-                entity.HasIndex(e => e.CinNumber).IsUnique().HasFilter("[DeletedAt] IS NULL");
-                entity.HasIndex(e => e.Email).IsUnique().HasFilter("[DeletedAt] IS NULL");
+                entity.HasIndex(e => e.CinNumber).IsUnique().HasFilter("[deleted_at] IS NULL");
+                entity.HasIndex(e => e.Email).IsUnique().HasFilter("[deleted_at] IS NULL");
 
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Employees)

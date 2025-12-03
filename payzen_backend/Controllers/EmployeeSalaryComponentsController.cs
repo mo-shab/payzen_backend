@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/employee-salary-components")]
     [ApiController]
     [Authorize]
-    public class EmployeeSalaryComponentController : ControllerBase
+    public class EmployeeSalaryComponentsController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public EmployeeSalaryComponentController(AppDbContext db) => _db = db;
+        public EmployeeSalaryComponentsController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les composants de salaire
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_EMPLOYEE_SALARY_COMPONENTS")]
+        //[HasPermission("READ_EMPLOYEE_SALARY_COMPONENTS")]
         public async Task<ActionResult<IEnumerable<EmployeeSalaryComponentReadDto>>> GetAll()
         {
             var components = await _db.EmployeeSalaryComponents
@@ -50,7 +50,7 @@ namespace payzen_backend.Controllers
         /// Récupère un composant par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_EMPLOYEE_SALARY_COMPONENT")]
+        //[HasPermission("VIEW_EMPLOYEE_SALARY_COMPONENT")]
         public async Task<ActionResult<EmployeeSalaryComponentReadDto>> GetById(int id)
         {
             var component = await _db.EmployeeSalaryComponents
@@ -80,7 +80,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les composants d'un salaire
         /// </summary>
         [HttpGet("salary/{salaryId}")]
-        [HasPermission("VIEW_EMPLOYEE_SALARY_COMPONENT")]
+        //[HasPermission("VIEW_EMPLOYEE_SALARY_COMPONENT")]
         public async Task<ActionResult<IEnumerable<EmployeeSalaryComponentReadDto>>> GetBySalaryId(int salaryId)
         {
             var salaryExists = await _db.EmployeeSalaries.AnyAsync(es => es.Id == salaryId && es.DeletedAt == null);
@@ -112,7 +112,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau composant de salaire
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_EMPLOYEE_SALARY_COMPONENT")]
+        //[HasPermission("CREATE_EMPLOYEE_SALARY_COMPONENT")]
         public async Task<ActionResult<EmployeeSalaryComponentReadDto>> Create([FromBody] EmployeeSalaryComponentCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -167,7 +167,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un composant
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_EMPLOYEE_SALARY_COMPONENT")]
+        //[HasPermission("UPDATE_EMPLOYEE_SALARY_COMPONENT")]
         public async Task<ActionResult<EmployeeSalaryComponentReadDto>> Update(int id, [FromBody] EmployeeSalaryComponentUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -226,7 +226,7 @@ namespace payzen_backend.Controllers
         /// Supprime un composant (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_EMPLOYEE_SALARY_COMPONENT")]
+        //[HasPermission("DELETE_EMPLOYEE_SALARY_COMPONENT")]
         public async Task<IActionResult> Delete(int id)
         {
             var component = await _db.EmployeeSalaryComponents.FirstOrDefaultAsync(esc => esc.Id == id && esc.DeletedAt == null);

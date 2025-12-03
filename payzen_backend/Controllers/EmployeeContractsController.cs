@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/employee-contracts")]
     [ApiController]
     [Authorize]
-    public class EmployeeContractController : ControllerBase
+    public class EmployeeContractsController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public EmployeeContractController(AppDbContext db) => _db = db;
+        public EmployeeContractsController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les contrats d'employés
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_EMPLOYEE_CONTRACTS")]
+        //[HasPermission("READ_EMPLOYEE_CONTRACTS")]
         public async Task<ActionResult<IEnumerable<EmployeeContractReadDto>>> GetAll()
         {
             var contracts = await _db.EmployeeContracts
@@ -58,7 +58,7 @@ namespace payzen_backend.Controllers
         /// Récupère un contrat par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_EMPLOYEE_CONTRACT")]
+        //[HasPermission("VIEW_EMPLOYEE_CONTRACT")]
         public async Task<ActionResult<EmployeeContractReadDto>> GetById(int id)
         {
             var contract = await _db.EmployeeContracts
@@ -96,7 +96,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les contrats d'un employé
         /// </summary>
         [HttpGet("employee/{employeeId}")]
-        [HasPermission("VIEW_EMPLOYEE_CONTRACT")]
+        //[HasPermission("VIEW_EMPLOYEE_CONTRACT")]
         public async Task<ActionResult<IEnumerable<EmployeeContractReadDto>>> GetByEmployeeId(int employeeId)
         {
             var employeeExists = await _db.Employees.AnyAsync(e => e.Id == employeeId && e.DeletedAt == null);
@@ -136,7 +136,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau contrat
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_EMPLOYEE_CONTRACT")]
+        //[HasPermission("CREATE_EMPLOYEE_CONTRACT")]
         public async Task<ActionResult<EmployeeContractReadDto>> Create([FromBody] EmployeeContractCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -213,7 +213,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un contrat
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_EMPLOYEE_CONTRACT")]
+        //[HasPermission("UPDATE_EMPLOYEE_CONTRACT")]
         public async Task<ActionResult<EmployeeContractReadDto>> Update(int id, [FromBody] EmployeeContractUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -292,7 +292,7 @@ namespace payzen_backend.Controllers
         /// Supprime un contrat (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_EMPLOYEE_CONTRACT")]
+        //[HasPermission("DELETE_EMPLOYEE_CONTRACT")]
         public async Task<IActionResult> Delete(int id)
         {
             var contract = await _db.EmployeeContracts.FirstOrDefaultAsync(ec => ec.Id == id && ec.DeletedAt == null);

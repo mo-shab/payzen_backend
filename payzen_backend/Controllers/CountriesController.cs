@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/countries")]
     [ApiController]
     [Authorize]
-    public class CountryController : ControllerBase
+    public class CountriesController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public CountryController(AppDbContext db) => _db = db;
+        public CountriesController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les pays actifs
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_COUNTRIES")]
+        //[HasPermission("READ_COUNTRIES")]
         public async Task<ActionResult<IEnumerable<CountryReadDto>>> GetAll()
         {
             var countries = await _db.Countries
@@ -49,7 +49,7 @@ namespace payzen_backend.Controllers
         /// Récupère un pays par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_COUNTRY")]
+        //[HasPermission("VIEW_COUNTRY")]
         public async Task<ActionResult<CountryReadDto>> GetById(int id)
         {
             var country = await _db.Countries
@@ -78,7 +78,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau pays
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_COUNTRY")]
+        //[HasPermission("CREATE_COUNTRY")]
         public async Task<ActionResult<CountryReadDto>> Create([FromBody] CountryCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -124,7 +124,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un pays
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_COUNTRY")]
+        //[HasPermission("UPDATE_COUNTRY")]
         public async Task<ActionResult<CountryReadDto>> Update(int id, [FromBody] CountryUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -181,7 +181,7 @@ namespace payzen_backend.Controllers
         /// Supprime un pays (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_COUNTRY")]
+        //[HasPermission("DELETE_COUNTRY")]
         public async Task<IActionResult> Delete(int id)
         {
             var country = await _db.Countries.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);

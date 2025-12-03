@@ -77,8 +77,6 @@ namespace payzen_backend.Controllers
                         && u.DeletedAt == null)
                 .FirstOrDefaultAsync();
 
-            Console.WriteLine($"👤 User found in database: {user != null}");
-
             if (user == null)
             {
                 Console.WriteLine("❌ User not found or inactive");

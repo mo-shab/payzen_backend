@@ -12,17 +12,17 @@ namespace payzen_backend.Controllers
     [Route("api/employee-salaries")]
     [ApiController]
     [Authorize]
-    public class EmployeeSalaryController : ControllerBase
+    public class EmployeeSalariesController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public EmployeeSalaryController(AppDbContext db) => _db = db;
+        public EmployeeSalariesController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les salaires
         /// </summary>
         [HttpGet]
-        [HasPermission("READ_EMPLOYEE_SALARIES")]
+        //[HasPermission("READ_EMPLOYEE_SALARIES")]
         public async Task<ActionResult<IEnumerable<EmployeeSalaryReadDto>>> GetAll()
         {
             var salaries = await _db.EmployeeSalaries
@@ -52,7 +52,7 @@ namespace payzen_backend.Controllers
         /// Récupère un salaire par ID
         /// </summary>
         [HttpGet("{id}")]
-        [HasPermission("VIEW_EMPLOYEE_SALARY")]
+        //[HasPermission("VIEW_EMPLOYEE_SALARY")]
         public async Task<ActionResult<EmployeeSalaryReadDto>> GetById(int id)
         {
             var salary = await _db.EmployeeSalaries
@@ -84,7 +84,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les salaires d'un employé
         /// </summary>
         [HttpGet("employee/{employeeId}")]
-        [HasPermission("VIEW_EMPLOYEE_SALARY")]
+        //[HasPermission("VIEW_EMPLOYEE_SALARY")]
         public async Task<ActionResult<IEnumerable<EmployeeSalaryReadDto>>> GetByEmployeeId(int employeeId)
         {
             var employeeExists = await _db.Employees.AnyAsync(e => e.Id == employeeId && e.DeletedAt == null);
@@ -118,7 +118,7 @@ namespace payzen_backend.Controllers
         /// Récupère tous les salaires d'un contrat
         /// </summary>
         [HttpGet("contract/{contractId}")]
-        [HasPermission("VIEW_EMPLOYEE_SALARY")]
+        //[HasPermission("VIEW_EMPLOYEE_SALARY")]
         public async Task<ActionResult<IEnumerable<EmployeeSalaryReadDto>>> GetByContractId(int contractId)
         {
             var contractExists = await _db.EmployeeContracts.AnyAsync(ec => ec.Id == contractId && ec.DeletedAt == null);
@@ -152,7 +152,7 @@ namespace payzen_backend.Controllers
         /// Crée un nouveau salaire
         /// </summary>
         [HttpPost]
-        [HasPermission("CREATE_EMPLOYEE_SALARY")]
+        //[HasPermission("CREATE_EMPLOYEE_SALARY")]
         public async Task<ActionResult<EmployeeSalaryReadDto>> Create([FromBody] EmployeeSalaryCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -219,7 +219,7 @@ namespace payzen_backend.Controllers
         /// Met à jour un salaire
         /// </summary>
         [HttpPut("{id}")]
-        [HasPermission("UPDATE_EMPLOYEE_SALARY")]
+        //[HasPermission("UPDATE_EMPLOYEE_SALARY")]
         public async Task<ActionResult<EmployeeSalaryReadDto>> Update(int id, [FromBody] EmployeeSalaryUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -277,7 +277,7 @@ namespace payzen_backend.Controllers
         /// Supprime un salaire (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [HasPermission("DELETE_EMPLOYEE_SALARY")]
+        //[HasPermission("DELETE_EMPLOYEE_SALARY")]
         public async Task<IActionResult> Delete(int id)
         {
             var salary = await _db.EmployeeSalaries.FirstOrDefaultAsync(es => es.Id == id && es.DeletedAt == null);

@@ -13,11 +13,11 @@ namespace payzen_backend.Controllers
     [Route("api/working-calendar")]
     [ApiController]
     [Authorize]
-    public class WorkingCalendarController : ControllerBase
+    public class WorkingCalendarsController : ControllerBase
     {
         private readonly AppDbContext _db;
 
-        public WorkingCalendarController(AppDbContext db) => _db = db;
+        public WorkingCalendarsController(AppDbContext db) => _db = db;
 
         /// <summary>
         /// Récupère tous les calendriers de travail actifs
