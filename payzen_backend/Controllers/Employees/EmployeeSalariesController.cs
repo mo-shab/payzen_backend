@@ -7,7 +7,7 @@ using payzen_backend.Models.Employee.Dtos;
 using payzen_backend.Authorization;
 using payzen_backend.Extensions;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Employees
 {
     [Route("api/employee-salaries")]
     [ApiController]

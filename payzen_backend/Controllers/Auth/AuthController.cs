@@ -5,7 +5,7 @@ using payzen_backend.Data;
 using payzen_backend.Models.Auth;
 using payzen_backend.Services;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Auth
 {
     [ApiController]
     [Route("api/auth")]

@@ -6,7 +6,7 @@ using payzen_backend.Extensions;
 using payzen_backend.Models.Referentiel;
 using payzen_backend.Models.Referentiel.Dtos;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Company
 {
     [Route("api/education-levels")]
     [ApiController]

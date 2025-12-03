@@ -7,7 +7,7 @@ using payzen_backend.Extensions;
 using payzen_backend.Models.Users;
 using payzen_backend.Models.Users.Dtos;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Auth
 {
     [Route("api/users")]
     [ApiController]

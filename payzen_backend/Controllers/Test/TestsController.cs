@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using payzen_backend.Data;
 using System.Reflection;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Test
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -57,7 +57,7 @@ namespace payzen_backend.Controllers
                 return StatusCode(500, new
                 {
                     Status = "Error",
-                    Message = ex.Message,
+                    ex.Message,
                     Timestamp = DateTimeOffset.UtcNow
                 });
             }

@@ -10,7 +10,7 @@ using payzen_backend.Services;
 using payzen_backend.Models.Users;
 using static payzen_backend.Models.Permissions.PermissionsConstants;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Employees
 {
     [Route("api/employees")]
     [ApiController]
@@ -401,8 +401,8 @@ namespace payzen_backend.Controllers
                     Employee = readDto,
                     UserAccount = new
                     {
-                        Username = createdUser.Username,
-                        Email = createdUser.Email,
+                        createdUser.Username,
+                        createdUser.Email,
                         TemporaryPassword = temporaryPassword,
                         Message = "Un compte utilisateur a été créé. Le mot de passe temporaire doit être changé lors de la première connexion."
                     }

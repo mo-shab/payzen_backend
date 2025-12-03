@@ -5,7 +5,7 @@ using payzen_backend.Authorization;
 using payzen_backend.Data;
 using payzen_backend.Models.Dashboard.Dtos;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Dashboard
 {
     [ApiController]
     [Route("api/dashboard")]

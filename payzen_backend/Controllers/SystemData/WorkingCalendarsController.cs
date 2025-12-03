@@ -8,7 +8,7 @@ using payzen_backend.Authorization;
 using payzen_backend.Extensions;
 using System.Globalization;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.SystemData
 {
     [Route("api/working-calendar")]
     [ApiController]

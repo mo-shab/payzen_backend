@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Company
 {
-    public class GendersController : Controller
+    public class MaritalStatuesController : Controller
     {
         public IActionResult Index()
         {

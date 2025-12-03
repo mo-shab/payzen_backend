@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using payzen_backend.Authorization;
 using payzen_backend.Data;
 using payzen_backend.Extensions;
-using payzen_backend.Models.Company;
 using payzen_backend.Models.Company.Dtos;
 using static payzen_backend.Models.Permissions.PermissionsConstants;
+using CompanyModel = payzen_backend.Models.Company.Company;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Company
 {
     [Route("api/companies")]
     [ApiController]
@@ -199,7 +199,7 @@ namespace payzen_backend.Controllers
                     return NotFound(new { Message = "Société gérante non trouvée" });
             }
 
-            var company = new Company
+            var company = new CompanyModel
             {
                 CompanyName = dto.CompanyName,
                 CompanyAddress = dto.CompanyAddress,

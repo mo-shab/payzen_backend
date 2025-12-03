@@ -6,7 +6,7 @@ using payzen_backend.Models.Permissions;
 using payzen_backend.Models.Permissions.Dtos;
 using payzen_backend.Extensions;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Auth
 {
     [Route("api/roles")]
     [ApiController]

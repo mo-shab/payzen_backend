@@ -7,7 +7,7 @@ using payzen_backend.Models.Company.Dtos;
 using payzen_backend.Authorization;
 using payzen_backend.Extensions;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Company
 {
     [Route("api/departements")]
     [ApiController]

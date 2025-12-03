@@ -6,7 +6,7 @@ using payzen_backend.Extensions;
 using payzen_backend.Models.Company;
 using payzen_backend.Models.Company.Dtos;
 
-namespace payzen_backend.Controllers
+namespace payzen_backend.Controllers.Company
 {
     [Route("api/job-positions")]
     [ApiController]
