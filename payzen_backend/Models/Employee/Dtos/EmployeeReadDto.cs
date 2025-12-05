@@ -18,10 +18,12 @@ namespace payzen_backend.Models.Employee.Dtos
         public int? ManagerId { get; set; }
         public string? ManagerName { get; set; }
         public int? StatusId { get; set; }
+        public string? StatusName { get; set; } = string.Empty;
         public int? GenderId { get; set; }
         public int? NationalityId { get; set; }
         public int? EducationLevelId { get; set; }
         public int? MaritalStatusId { get; set; }
+        public string? JobPostionName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 }

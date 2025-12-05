@@ -34,6 +34,7 @@ namespace payzen_backend.Data
         public DbSet<Gender> Genders { get; set; }
         public DbSet<EducationLevel> EducationLevels { get; set; }
         public DbSet<MaritalStatus> MaritalStatuses { get; set; }
+        public DbSet<Nationality> Nationalities { get; set; }
 
         // ========== Tables Employee ==========
         public DbSet<Employee> Employees { get; set; }

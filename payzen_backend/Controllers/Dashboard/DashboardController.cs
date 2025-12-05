@@ -14,10 +14,8 @@ namespace payzen_backend.Controllers.Dashboard
     {
         private readonly AppDbContext _db;
 
-        public DashboardController(AppDbContext db)
-        {
-            _db = db;
-        }
+        public DashboardController(AppDbContext db) { _db = db; }
+        
 
         /// <summary>
         /// Récupère les statistiques du dashboard avec la liste des employés
