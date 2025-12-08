@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="Models\Dashboard\Dtos\" />
+    <Folder Include="Models\Event\Dtos\" />
   </ItemGroup>
 
 </Project>

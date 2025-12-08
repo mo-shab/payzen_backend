@@ -17,7 +17,7 @@ namespace payzen_backend.Models.Employee
         public int? DepartementId { get; set; }
         public int? StatusId { get; set; }
         public int? GenderId { get; set; }
-        public int? NationalityId { get; set; }
+        //public int? NationalityId { get; set; }
         public int? EducationLevelId { get; set; }
         public int? MaritalStatusId { get; set; }
         
@@ -35,10 +35,10 @@ namespace payzen_backend.Models.Employee
         public ICollection<Employee>? Subordinates { get; set; }
         public Company.Departement? Departement { get; set; }
         
-        // 🆕 Nouvelles relations
+        // Nouvelles relations
         public Status? Status { get; set; }
         public Gender? Gender { get; set; }
-        public Country? Nationality { get; set; }
+        //public Country? Nationality { get; set; }
         public EducationLevel? EducationLevel { get; set; }
         public MaritalStatus? MaritalStatus { get; set; }
         

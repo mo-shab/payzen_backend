@@ -5,6 +5,8 @@ using payzen_backend.Models.Permissions;
 using payzen_backend.Models.Employee;
 using payzen_backend.Models.Company;
 using payzen_backend.Models.Referentiel;
+using payzen_backend.Models.Event;
+using System.Reflection.Emit;
 
 namespace payzen_backend.Data
 {
@@ -34,7 +36,6 @@ namespace payzen_backend.Data
         public DbSet<Gender> Genders { get; set; }
         public DbSet<EducationLevel> EducationLevels { get; set; }
         public DbSet<MaritalStatus> MaritalStatuses { get; set; }
-        public DbSet<Nationality> Nationalities { get; set; }
 
         // ========== Tables Employee ==========
         public DbSet<Employee> Employees { get; set; }
@@ -43,6 +44,10 @@ namespace payzen_backend.Data
         public DbSet<EmployeeSalaryComponent> EmployeeSalaryComponents { get; set; }
         public DbSet<EmployeeAddress> EmployeeAddresses { get; set; }
         public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
+
+        // =========== Tables Events ================
+        public DbSet<EventType> EventTypes { get; set; }
+        public DbSet<EventsEmployee> EventsEmployees { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -132,7 +137,7 @@ namespace payzen_backend.Data
                 entity.Property(c => c.CountryNameAr).HasMaxLength(500);
                 entity.Property(c => c.CountryCode).IsRequired().HasMaxLength(3);
                 entity.Property(c => c.CountryPhoneCode).IsRequired().HasMaxLength(10);
-                entity.Property(c => c.Nationality).IsRequired().HasMaxLength(500);
+                //entity.Property(c => c.Nationality).IsRequired().HasMaxLength(500);
             });
 
             modelBuilder.Entity<City>(entity =>
@@ -313,7 +318,7 @@ namespace payzen_backend.Data
                 entity.Property(e => e.DepartementId).HasColumnName("departement_id");
                 entity.Property(e => e.StatusId).HasColumnName("status_id");
                 entity.Property(e => e.GenderId).HasColumnName("gender_id");
-                entity.Property(e => e.NationalityId).HasColumnName("nationality_id");
+                //entity.Property(e => e.NationalityId).HasColumnName("nationality_id");
                 entity.Property(e => e.EducationLevelId).HasColumnName("education_level_id");
                 entity.Property(e => e.MaritalStatusId).HasColumnName("marital_status_id");
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at");
@@ -351,10 +356,10 @@ namespace payzen_backend.Data
                     .HasForeignKey(e => e.GenderId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.Nationality)
-                    .WithMany()
-                    .HasForeignKey(e => e.NationalityId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                //entity.HasOne(e => e.Nationality)
+                //    .WithMany(c => c.Employees)
+                //    .HasForeignKey(e => e.NationalityId)
+                //    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.EducationLevel)
                     .WithMany(el => el.Employees)
@@ -444,10 +449,6 @@ namespace payzen_backend.Data
                     .HasForeignKey(ea => ea.CityId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(ea => ea.Country)
-                    .WithMany()
-                    .HasForeignKey(ea => ea.CountryId)
-                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<EmployeeDocument>(entity =>
@@ -463,6 +464,33 @@ namespace payzen_backend.Data
                     .HasForeignKey(ed => ed.EmployeeId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+            
+            modelBuilder.Entity<EventType>(entity =>
+            {
+                entity.ToTable("EventType");
+                entity.HasKey(et => et.Id);
+                entity.Property(et => et.Name).IsRequired().HasMaxLength(100);
+                entity.Property(et => et.Description).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<EventsEmployee>(entity =>
+            {
+                entity.ToTable("EventsEmployee");
+                entity.HasKey(ee => ee.Id);
+
+                entity.Property(ee => ee.EventTime).IsRequired();
+
+                entity.HasOne(ee => ee.Employee)
+                    .WithMany()
+                    .HasForeignKey(ee => ee.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(ee => ee.EventType)
+                    .WithMany(et => et.EventsEmployees)
+                    .HasForeignKey(ee => ee.EventTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
         }
     }
 }

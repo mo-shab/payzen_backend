@@ -111,15 +111,14 @@ namespace payzen_backend.Controllers.Employees
                 .AsNoTracking()
                 .Where(e => e.Id == id && e.DeletedAt == null)
                 .Include(e => e.Company)
-                    .ThenInclude(c => c!.Country)
                 .Include(e => e.Manager)
                 .Include(e => e.Departement)
                 .Include(e => e.Status)
                 .Include(e => e.MaritalStatus)
-                .Include(e => e.Nationality)
+                //.Include(e => e.Nationality)
                 .Include(e => e.Addresses!.Where(a => a.DeletedAt == null))
-                    .ThenInclude(a => a.City)
-                        .ThenInclude(c => c!.Country)
+                    .ThenInclude(e => e.City)
+                    .ThenInclude(e => e.Country)
                 .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
                     .ThenInclude(c => c.JobPosition)
                 .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
@@ -165,6 +164,20 @@ namespace payzen_backend.Controllers.Employees
             decimal totalComponents = salaryComponents.Sum(c => c.Amount);
             decimal totalSalary = baseSalary + totalComponents;
 
+            // Récupérer les événements
+            var events = await _db.EventsEmployees
+                .Where(ev => ev.EmployeeId == employee.Id && ev.DeletedAt == null)
+                .OrderByDescending(ev => ev.EventTime)
+                .Select(ev => new
+                {
+                    Id = ev.Id,
+                    EventTypeName = ev.EventType != null ? ev.EventType.Name : "",
+                    EventTypeDescription = ev.EventType != null ? ev.EventType.Description : null,
+                    EventTime = ev.EventTime,
+                    CreatedAt = ev.CreatedAt.DateTime
+                })
+                .ToListAsync();
+
             var result = new EmployeeDetailDto
             {
                 Id = employee.Id,
@@ -176,7 +189,7 @@ namespace payzen_backend.Controllers.Employees
                 StatusName = employee.Status?.Name,
                 Email = employee.Email,
                 Phone = employee.Phone,
-                CountryPhoneCode = employee.Company?.Country?.CountryPhoneCode,
+                CountryPhoneCode = activeAddress?.City?.Country?.CountryPhoneCode,
 
                 // Adresse
                 Address = activeAddress != null ? new EmployeeAddressDto
@@ -185,7 +198,7 @@ namespace payzen_backend.Controllers.Employees
                     AddressLine2 = activeAddress.AddressLine2,
                     ZipCode = activeAddress.ZipCode,
                     CityName = activeAddress.City?.CityName ?? "",
-                    CountryName = employee.Company?.Country?.CountryName,
+                    CountryName = activeAddress.City?.Country?.CountryName,
                 } : null,
 
                 // Informations de contrat
@@ -205,6 +218,9 @@ namespace payzen_backend.Controllers.Employees
                 CNSS = 00000,
                 AMO = 000000,
                 CIMR = 00000,
+
+                // Événements
+                Events = events.Select(ev => (dynamic)ev).ToList(),
 
                 CreatedAt = employee.CreatedAt.DateTime
             };
@@ -247,7 +263,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerName = employee.Manager != null ? $"{employee.Manager.FirstName} {employee.Manager.LastName}" : null,
                 StatusId = employee.StatusId,
                 GenderId = employee.GenderId,
-                NationalityId = employee.NationalityId,
+                //NationalityId = employee.NationalityId,
                 EducationLevelId = employee.EducationLevelId,
                 MaritalStatusId = employee.MaritalStatusId,
                 CreatedAt = employee.CreatedAt.DateTime
@@ -294,7 +310,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
                 StatusId = e.StatusId,
                 GenderId = e.GenderId,
-                NationalityId = e.NationalityId,
+                //NationalityId = e.NationalityId,
                 EducationLevelId = e.EducationLevelId,
                 MaritalStatusId = e.MaritalStatusId,
                 CreatedAt = e.CreatedAt.DateTime
@@ -341,7 +357,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
                 StatusId = e.StatusId,
                 GenderId = e.GenderId,
-                NationalityId = e.NationalityId,
+                //NationalityId = e.NationalityId,
                 EducationLevelId = e.EducationLevelId,
                 MaritalStatusId = e.MaritalStatusId,
                 CreatedAt = e.CreatedAt.DateTime
@@ -384,9 +400,10 @@ namespace payzen_backend.Controllers.Employees
                 DepartementId = e.DepartementId,
                 DepartementName = e.Departement?.DepartementName,
                 ManagerId = e.ManagerId,
+                ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
                 StatusId = e.StatusId,
                 GenderId = e.GenderId,
-                NationalityId = e.NationalityId,
+                //NationalityId = e.NationalityId,
                 EducationLevelId = e.EducationLevelId,
                 MaritalStatusId = e.MaritalStatusId,
                 CreatedAt = e.CreatedAt.DateTime
@@ -457,7 +474,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerId = dto.ManagerId,
                 StatusId = dto.StatusId,
                 GenderId = dto.GenderId,
-                NationalityId = dto.NationalityId,
+                //NationalityId = dto.NationalityId,
                 EducationLevelId = dto.EducationLevelId,
                 MaritalStatusId = dto.MaritalStatusId,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -530,7 +547,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerName = createdEmployee.Manager != null ? $"{createdEmployee.Manager.FirstName} {createdEmployee.Manager.LastName}" : null,
                 StatusId = createdEmployee.StatusId,
                 GenderId = createdEmployee.GenderId,
-                NationalityId = createdEmployee.NationalityId,
+                //NationalityId = createdEmployee.NationalityId,
                 EducationLevelId = createdEmployee.EducationLevelId,
                 MaritalStatusId = createdEmployee.MaritalStatusId,
                 CreatedAt = createdEmployee.CreatedAt.DateTime
@@ -648,8 +665,8 @@ namespace payzen_backend.Controllers.Employees
             if (dto.GenderId.HasValue)
                 employee.GenderId = dto.GenderId.Value;
 
-            if (dto.NationalityId.HasValue)
-                employee.NationalityId = dto.NationalityId.Value;
+            //if (dto.NationalityId.HasValue)
+            //    employee.NationalityId = dto.NationalityId.Value;
 
             if (dto.EducationLevelId.HasValue)
                 employee.EducationLevelId = dto.EducationLevelId.Value;
@@ -687,7 +704,7 @@ namespace payzen_backend.Controllers.Employees
                 ManagerName = updatedEmployee.Manager != null ? $"{updatedEmployee.Manager.FirstName} {updatedEmployee.Manager.LastName}" : null,
                 StatusId = updatedEmployee.StatusId,
                 GenderId = updatedEmployee.GenderId,
-                NationalityId = updatedEmployee.NationalityId,
+                //NationalityId = updatedEmployee.NationalityId,
                 EducationLevelId = updatedEmployee.EducationLevelId,
                 MaritalStatusId = updatedEmployee.MaritalStatusId,
                 CreatedAt = updatedEmployee.CreatedAt.DateTime

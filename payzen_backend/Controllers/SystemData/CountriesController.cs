@@ -38,7 +38,7 @@ namespace payzen_backend.Controllers.SystemData
                 CountryNameAr = c.CountryNameAr,
                 CountryCode = c.CountryCode,
                 CountryPhoneCode = c.CountryPhoneCode,
-                Nationality = c.Nationality,
+                //Nationality = c.Nationality,
                 CreatedAt = c.CreatedAt.DateTime
             });
 
@@ -67,7 +67,7 @@ namespace payzen_backend.Controllers.SystemData
                 CountryNameAr = country.CountryNameAr,
                 CountryCode = country.CountryCode,
                 CountryPhoneCode = country.CountryPhoneCode,
-                Nationality = country.Nationality,
+                //Nationality = country.Nationality,
                 CreatedAt = country.CreatedAt.DateTime
             };
 
@@ -98,7 +98,7 @@ namespace payzen_backend.Controllers.SystemData
                 CountryNameAr = dto.CountryNameAr,
                 CountryCode = dto.CountryCode.ToUpper(),
                 CountryPhoneCode = dto.CountryPhoneCode,
-                Nationality = dto.Nationality,
+                //Nationality = dto.Nationality,
                 CreatedBy = User.GetUserId(),
                 CreatedAt = DateTimeOffset.UtcNow
             };
@@ -113,7 +113,7 @@ namespace payzen_backend.Controllers.SystemData
                 CountryNameAr = country.CountryNameAr,
                 CountryCode = country.CountryCode,
                 CountryPhoneCode = country.CountryPhoneCode,
-                Nationality = country.Nationality,
+                //Nationality = country.Nationality,
                 CreatedAt = country.CreatedAt.DateTime
             };
 
@@ -155,8 +155,8 @@ namespace payzen_backend.Controllers.SystemData
             if (dto.CountryPhoneCode != null)
                 country.CountryPhoneCode = dto.CountryPhoneCode;
 
-            if (dto.Nationality != null)
-                country.Nationality = dto.Nationality;
+            //if (dto.Nationality != null)
+            //    country.Nationality = dto.Nationality;
 
             country.ModifiedAt = DateTimeOffset.UtcNow;
             country.ModifiedBy = User.GetUserId();
@@ -170,7 +170,7 @@ namespace payzen_backend.Controllers.SystemData
                 CountryNameAr = country.CountryNameAr,
                 CountryCode = country.CountryCode,
                 CountryPhoneCode = country.CountryPhoneCode,
-                Nationality = country.Nationality,
+                //Nationality = country.Nationality,
                 CreatedAt = country.CreatedAt.DateTime
             };
 

@@ -30,7 +30,9 @@ namespace payzen_backend.Models.Employee.Dtos
         public int? CNSS { get; set; }
         public int? AMO { get; set; }
         public int? CIMR { get; set; }
-        
+        // Evenements
+        public List<dynamic> Events { get; set; } = new();
+
         public DateTime CreatedAt { get; set; }
     }
 

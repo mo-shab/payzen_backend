@@ -11,7 +11,6 @@ namespace payzen_backend.Models.Employee
         public string? AddressLine2 { get; set; }
         public required string ZipCode { get; set; }
         public int CityId { get; set; }
-        public int CountryId { get; set; }
 
         // Champs d'audit
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -24,6 +23,5 @@ namespace payzen_backend.Models.Employee
         // Navigation properties
         public Employee? Employee { get; set; } = null!;
         public Referentiel.City? City { get; set; } = null!;
-        public Referentiel.Country? Country { get; set; } = null!;
     }
 }

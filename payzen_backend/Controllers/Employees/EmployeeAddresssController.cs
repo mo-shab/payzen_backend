@@ -31,7 +31,6 @@ namespace payzen_backend.Controllers.Employees
                 .Include(ea => ea.Employee)
                 .Include(ea => ea.City)
                     .ThenInclude(c => c.Country)
-                .Include(ea => ea.Country)
                 .OrderBy(ea => ea.Employee.LastName)
                 .ThenBy(ea => ea.Employee.FirstName)
                 .ToListAsync();
@@ -46,8 +45,6 @@ namespace payzen_backend.Controllers.Employees
                 ZipCode = ea.ZipCode,
                 CityId = ea.CityId,
                 CityName = ea.City?.CityName ?? "",
-                CountryId = ea.CountryId,
-                CountryName = ea.Country?.CountryName ?? "",
                 CreatedAt = ea.CreatedAt.DateTime
             });
 
@@ -67,7 +64,6 @@ namespace payzen_backend.Controllers.Employees
                 .Include(ea => ea.Employee)
                 .Include(ea => ea.City)
                     .ThenInclude(c => c.Country)
-                .Include(ea => ea.Country)
                 .FirstOrDefaultAsync(ea => ea.Id == id);
 
             if (address == null)
@@ -83,8 +79,6 @@ namespace payzen_backend.Controllers.Employees
                 ZipCode = address.ZipCode,
                 CityId = address.CityId,
                 CityName = address.City?.CityName ?? "",
-                CountryId = address.CountryId,
-                CountryName = address.Country?.CountryName ?? "",
                 CreatedAt = address.CreatedAt.DateTime
             };
 
@@ -108,7 +102,6 @@ namespace payzen_backend.Controllers.Employees
                 .Include(ea => ea.Employee)
                 .Include(ea => ea.City)
                     .ThenInclude(c => c.Country)
-                .Include(ea => ea.Country)
                 .OrderByDescending(ea => ea.CreatedAt)
                 .ToListAsync();
 
@@ -122,8 +115,6 @@ namespace payzen_backend.Controllers.Employees
                 ZipCode = ea.ZipCode,
                 CityId = ea.CityId,
                 CityName = ea.City?.CityName ?? "",
-                CountryId = ea.CountryId,
-                CountryName = ea.Country?.CountryName ?? "",
                 CreatedAt = ea.CreatedAt.DateTime
             });
 
@@ -171,7 +162,6 @@ namespace payzen_backend.Controllers.Employees
                 AddressLine2 = dto.AddressLine2,
                 ZipCode = dto.ZipCode,
                 CityId = dto.CityId,
-                CountryId = dto.CountryId,
                 CreatedBy = User.GetUserId(),
                 CreatedAt = DateTimeOffset.UtcNow
             };
@@ -184,7 +174,6 @@ namespace payzen_backend.Controllers.Employees
                 .AsNoTracking()
                 .Include(ea => ea.Employee)
                 .Include(ea => ea.City)
-                .Include(ea => ea.Country)
                 .FirstAsync(ea => ea.Id == address.Id);
 
             var result = new EmployeeAddressReadDto
@@ -197,8 +186,6 @@ namespace payzen_backend.Controllers.Employees
                 ZipCode = createdAddress.ZipCode,
                 CityId = createdAddress.CityId,
                 CityName = createdAddress.City?.CityName ?? "",
-                CountryId = createdAddress.CountryId,
-                CountryName = createdAddress.Country?.CountryName ?? "",
                 CreatedAt = createdAddress.CreatedAt.DateTime
             };
 
@@ -252,8 +239,6 @@ namespace payzen_backend.Controllers.Employees
                 var city = await _db.Cities.FindAsync(currentCityId);
                 if (city?.CountryId != dto.CountryId.Value)
                     return BadRequest(new { Message = "La ville ne correspond pas au pays spécifié" });
-                
-                address.CountryId = dto.CountryId.Value;
             }
 
             address.ModifiedAt = DateTimeOffset.UtcNow;
@@ -266,7 +251,6 @@ namespace payzen_backend.Controllers.Employees
                 .AsNoTracking()
                 .Include(ea => ea.Employee)
                 .Include(ea => ea.City)
-                .Include(ea => ea.Country)
                 .FirstAsync(ea => ea.Id == id);
 
             var result = new EmployeeAddressReadDto
@@ -279,8 +263,6 @@ namespace payzen_backend.Controllers.Employees
                 ZipCode = updatedAddress.ZipCode,
                 CityId = updatedAddress.CityId,
                 CityName = updatedAddress.City?.CityName ?? "",
-                CountryId = updatedAddress.CountryId,
-                CountryName = updatedAddress.Country?.CountryName ?? "",
                 CreatedAt = updatedAddress.CreatedAt.DateTime
             };
 

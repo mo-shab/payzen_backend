@@ -1,4 +1,5 @@
 using payzen_backend.Models.Company;
+using payzen_backend.Models.Employee;
 
 namespace payzen_backend.Models.Referentiel
 {
@@ -12,7 +13,7 @@ namespace payzen_backend.Models.Referentiel
         public string? CountryNameAr { get; set; }
         public required string CountryCode { get; set; }
         public required string CountryPhoneCode { get; set; }
-        public required string Nationality { get; set; }
+        // public required string Nationality { get; set; }
 
         // Champs d'audit
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -26,5 +27,7 @@ namespace payzen_backend.Models.Referentiel
         public ICollection<City>? Cities { get; set; }
         public ICollection<Company.Company>? Companies { get; set; }
         public ICollection<Holiday>? Holidays { get; set; }
+        public ICollection<EmployeeAddress>? EmployeeAddresses { get; set; }
+        public ICollection<Employee.Employee>? Employees { get; set; }
     }
 }
