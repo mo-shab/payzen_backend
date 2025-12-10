@@ -8,7 +8,7 @@ using payzen_backend.Models.Dashboard.Dtos;
 namespace payzen_backend.Controllers.Dashboard
 {
     [ApiController]
-    [Route("api/dashboard")]
+    [Route("api/dashboard/employees")]
     [Authorize]
     public class DashboardController : ControllerBase
     {
@@ -26,28 +26,71 @@ namespace payzen_backend.Controllers.Dashboard
         [Produces("application/json")]
         public async Task<ActionResult<DashboardResponseDto>> GetDashboard()
         {
-            // Comptage total des employés non supprimés
+            // Récupérer le userId depuis les claims du token JWT
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+            
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { Message = "Utilisateur non authentifié" });
+            }
+
+            if (!int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return BadRequest(new { Message = "ID utilisateur invalide" });
+            }
+
+            // Récupérer l'utilisateur avec son employé associé pour obtenir la CompanyId
+            var user = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "Utilisateur non trouvé" });
+            }
+
+            if (user.Employee == null)
+            {
+                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
+            }
+
+            var companyId = user.Employee.CompanyId;
+
+            // Comptage total des employés non supprimés de la même entreprise
             var totalEmployees = await _db.Employees
-                .Where(e => e.DeletedAt == null)
+                .Where(e => e.DeletedAt == null && e.CompanyId == companyId)
                 .CountAsync();
 
-            // Comptage des employés actifs
+            // Comptage des employés actifs de la même entreprise
             var activeEmployees = await _db.Employees
-                .Where(e => e.DeletedAt == null && e.Status != null && e.Status.Name == "Active")
+                .Where(e => e.DeletedAt == null && e.CompanyId == companyId && e.Status != null && e.Status.Name == "Active")
                 .CountAsync();
+            
+            // Récupération des départements de la même entreprise
+            var departements = await _db.Departement
+                .Where(d => d.DeletedAt == null && d.CompanyId == companyId)
+                .Select(d => d.DepartementName)
+                .ToListAsync();
 
-            // Récupération des employés avec toutes les relations nécessaires
+            // Récupération des Status
+            var statuses = await _db.Statuses
+                .Where(s => s.DeletedAt == null)
+                .Select(s => s.Name)
+                .ToListAsync();
+
+            // Récupération des employés avec toutes les relations nécessaires (filtrés par CompanyId)
             var employees = await _db.Employees
                 .AsNoTracking()
-                .Where(e => e.DeletedAt == null)
+                .Where(e => e.DeletedAt == null && e.CompanyId == companyId)
                 .Include(e => e.Company)
                 .Include(e => e.Departement)
                 .Include(e => e.Status)
                 .Include(e => e.Manager)
                 .Include(e => e.Documents)
-                .Include(e => e.Contracts.Where(c => c.DeletedAt == null && c.EndDate == null))
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
                     .ThenInclude(c => c.JobPosition)
-                .Include(e => e.Contracts.Where(c => c.DeletedAt == null && c.EndDate == null))
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
                     .ThenInclude(c => c.ContractType)
                 .OrderBy(e => e.FirstName)
                 .ThenBy(e => e.LastName)
@@ -56,37 +99,47 @@ namespace payzen_backend.Controllers.Dashboard
                     Id = e.Id.ToString(),
                     FirstName = e.FirstName,
                     LastName = e.LastName,
-                    Position = e.Contracts
-                        .Where(c => c.DeletedAt == null && c.EndDate == null)
-                        .OrderByDescending(c => c.StartDate)
-                        .Select(c => c.JobPosition.Name)
-                        .FirstOrDefault() ?? "Non assigné",
+                    Position = e.Contracts != null
+                        ? e.Contracts
+                            .Where(c => c.DeletedAt == null && c.EndDate == null)
+                            .OrderByDescending(c => c.StartDate)
+                            .Select(c => c.JobPosition!.Name)
+                            .FirstOrDefault() ?? "Non assigné"
+                        : "Non assigné",
                     Department = e.Departement != null ? e.Departement.DepartementName : "Non assigné",
                     Status = MapStatusToFrontend(e.Status != null ? e.Status.Name : ""),
-                    StartDate = e.Contracts
-                        .Where(c => c.DeletedAt == null && c.EndDate == null)
-                        .OrderByDescending(c => c.StartDate)
-                        .Select(c => c.StartDate.ToString("yyyy-MM-dd"))
-                        .FirstOrDefault() ?? "",
+                    StartDate = e.Contracts != null
+                        ? e.Contracts
+                            .Where(c => c.DeletedAt == null && c.EndDate == null)
+                            .OrderByDescending(c => c.StartDate)
+                            .Select(c => c.StartDate.ToString("yyyy-MM-dd"))
+                            .FirstOrDefault() ?? ""
+                        : "",
                     MissingDocuments = e.Documents != null 
                         ? e.Documents.Count(d => d.DeletedAt == null && string.IsNullOrEmpty(d.FilePath))
                         : 0,
-                    ContractType = e.Contracts
-                        .Where(c => c.DeletedAt == null && c.EndDate == null)
-                        .OrderByDescending(c => c.StartDate)
-                        .Select(c => c.ContractType.ContractTypeName)
-                        .FirstOrDefault() ?? "",
+                    ContractType = e.Contracts != null
+                        ? e.Contracts
+                            .Where(c => c.DeletedAt == null && c.EndDate == null)
+                            .OrderByDescending(c => c.StartDate)
+                            .Select(c => c.ContractType!.ContractTypeName)
+                            .FirstOrDefault() ?? ""
+                        : "",
                     Manager = e.Manager != null 
                         ? $"{e.Manager.FirstName} {e.Manager.LastName}" 
                         : null
                 })
                 .ToListAsync();
 
+           
+
             var response = new DashboardResponseDto
             {
                 TotalEmployees = totalEmployees,
                 ActiveEmployees = activeEmployees,
-                Employees = employees
+                Employees = employees,
+                Departements = departements,
+                Statuses = statuses
             };
 
             return Ok(response);

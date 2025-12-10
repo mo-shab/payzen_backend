@@ -14,9 +14,7 @@ namespace payzen_backend.Models.Employee.Dtos
         public string? CinNumber { get; set; }
 
         public DateTime? DateOfBirth { get; set; }
-
-        [Range(1, int.MaxValue, ErrorMessage = "Le numéro de téléphone doit être valide")]
-        public int? Phone { get; set; }
+        public string? Phone { get; set; }
 
         [EmailAddress(ErrorMessage = "Format d'email invalide")]
         [StringLength(500, ErrorMessage = "L'email ne peut pas dépasser 500 caractères")]
@@ -34,5 +32,7 @@ namespace payzen_backend.Models.Employee.Dtos
         public int? NationalityId { get; set; }
         public int? EducationLevelId { get; set; }
         public int? MaritalStatusId { get; set; }
+        public int? CnssNumber { get; set; }
+        public int? CimrNumber { get; set; }
     }
 }

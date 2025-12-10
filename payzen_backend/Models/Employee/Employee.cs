@@ -10,17 +10,19 @@ namespace payzen_backend.Models.Employee
         public required string LastName { get; set; }
         public required string CinNumber { get; set; }
         public required DateTime DateOfBirth { get; set; }
-        public required int Phone { get; set; }
+        public required string Phone { get; set; }
         public required string Email { get; set; }
         public int CompanyId { get; set; }
         public int? ManagerId { get; set; }
         public int? DepartementId { get; set; }
         public int? StatusId { get; set; }
         public int? GenderId { get; set; }
-        //public int? NationalityId { get; set; }
+        public int? NationalityId { get; set; }
         public int? EducationLevelId { get; set; }
         public int? MaritalStatusId { get; set; }
-        
+        public string? CnssNumber { get; set; }
+        public string? CimrNumber { get; set; }
+
         // Champs d'audit
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public int CreatedBy { get; set; }
@@ -38,7 +40,7 @@ namespace payzen_backend.Models.Employee
         // Nouvelles relations
         public Status? Status { get; set; }
         public Gender? Gender { get; set; }
-        //public Country? Nationality { get; set; }
+        public Nationality? Nationality { get; set; }
         public EducationLevel? EducationLevel { get; set; }
         public MaritalStatus? MaritalStatus { get; set; }
         

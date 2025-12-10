@@ -13,7 +13,6 @@ namespace payzen_backend.Models.Referentiel
         public string? CountryNameAr { get; set; }
         public required string CountryCode { get; set; }
         public required string CountryPhoneCode { get; set; }
-        // public required string Nationality { get; set; }
 
         // Champs d'audit
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

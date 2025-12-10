@@ -9,11 +9,14 @@ using payzen_backend.Models.Employee;
 using payzen_backend.Models.Employee.Dtos;
 using payzen_backend.Models.Users;
 using payzen_backend.Services;
+using payzen_backend.Models.Permissions;
+using payzen_backend.Models.Permissions.Dtos;
+
 using static payzen_backend.Models.Permissions.PermissionsConstants;
 
 namespace payzen_backend.Controllers.Employees
 {
-    [Route("api/employees")]
+    [Route("api/employee")]
     [ApiController]
     [Authorize]
     public class EmployeesController : ControllerBase
@@ -165,7 +168,7 @@ namespace payzen_backend.Controllers.Employees
             decimal totalSalary = baseSalary + totalComponents;
 
             // Récupérer les événements
-            var events = await _db.EventsEmployees
+            var events = await _db.EventsEmployee
                 .Where(ev => ev.EmployeeId == employee.Id && ev.DeletedAt == null)
                 .OrderByDescending(ev => ev.EventTime)
                 .Select(ev => new
@@ -208,6 +211,7 @@ namespace payzen_backend.Controllers.Employees
                     : null,
                 ContractStartDate = activeContract?.StartDate,
                 ContractTypeName = activeContract?.ContractType?.ContractTypeName,
+                departments = employee.Departement != null ? employee.Departement.DepartementName : null,
 
                 // Informations salariales
                 BaseSalary = baseSalary,
@@ -215,9 +219,9 @@ namespace payzen_backend.Controllers.Employees
                 TotalSalary = totalSalary,
 
                 // Numéro CNSS, AMO, CIMR A coder plus tartd dans le model employee
-                CNSS = 00000,
-                AMO = 000000,
-                CIMR = 00000,
+                CNSS = employee.CnssNumber,
+                AmoNumber = "74647",
+                CIMR = employee.CimrNumber,
 
                 // Événements
                 Events = events.Select(ev => (dynamic)ev).ToList(),
@@ -419,6 +423,9 @@ namespace payzen_backend.Controllers.Employees
         //[HasPermission(CREATE_EMPLOYEE)]
         public async Task<ActionResult<EmployeeReadDto>> Create([FromBody] EmployeeCreateDto dto)
         {
+            Console.WriteLine("=======================");
+            Console.WriteLine(ModelState);
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
@@ -553,6 +560,25 @@ namespace payzen_backend.Controllers.Employees
                 CreatedAt = createdEmployee.CreatedAt.DateTime
             };
 
+            // Assigné un role par défaut au nouvel utilisateur
+            if (dto.CreateUserAccount && createdUser != null)
+            {
+                var defaultRole = await _db.Roles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Name == "Employee" && r.DeletedAt == null);
+                if (defaultRole != null)
+                {
+                    var userRole = new UsersRoles
+                    {
+                        UserId = createdUser.Id,
+                        RoleId = defaultRole.Id,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        CreatedBy = userId
+                    };
+                    _db.UsersRoles.Add(userRole);
+                    await _db.SaveChangesAsync();
+                }
+            }
             // Retourner les infos du compte créé dans la réponse
             if (dto.CreateUserAccount && createdUser != null)
             {
@@ -609,8 +635,8 @@ namespace payzen_backend.Controllers.Employees
             if (dto.DateOfBirth.HasValue)
                 employee.DateOfBirth = dto.DateOfBirth.Value;
 
-            if (dto.Phone.HasValue)
-                employee.Phone = dto.Phone.Value;
+            if (string.IsNullOrEmpty(dto.Phone))
+                employee.Phone = dto.Phone;
 
             if (dto.Email != null && dto.Email != employee.Email)
             {
@@ -750,6 +776,179 @@ namespace payzen_backend.Controllers.Employees
             await _db.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Récupère toutes les données nécessaires pour le formulaire de création/modification d'employé
+        /// </summary>
+        /// <param name="companyId">ID de l'entreprise (optionnel, si non fourni utilise l'entreprise de l'utilisateur connecté)</param>
+        [HttpGet("form-data")]
+        public async Task<ActionResult<EmployeeFormDataDto>> GetFormData([FromQuery] int? companyId = null)
+        {
+            // Récupérer l'utilisateur authentifié
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { Message = "Utilisateur non authentifié" });
+            }
+
+            var user = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (user?.Employee == null)
+            {
+                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
+            }
+
+            // Utiliser le companyId fourni ou celui de l'utilisateur
+            var targetCompanyId = companyId ?? user.Employee.CompanyId;
+
+            // Vérifier que l'utilisateur a accès à cette entreprise
+            if (companyId.HasValue && companyId.Value != user.Employee.CompanyId)
+            {
+                // Vérifier si l'utilisateur a les permissions pour accéder à d'autres entreprises
+                // Pour l'instant, on restreint à sa propre entreprise
+                return Forbid();
+            }
+
+            var formData = new EmployeeFormDataDto();
+
+            // 1. Récupérer les statuts
+            formData.Statuses = await _db.Statuses
+                .Where(s => s.DeletedAt == null)
+                .Select(s => new StatusDto
+                {
+                    Id = s.Id,
+                    Name = s.Name
+                })
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            // 2. Récupérer les genres
+            formData.Genders = await _db.Genders
+                .Where(g => g.DeletedAt == null)
+                .Select(g => new GenderDto
+                {
+                    Id = g.Id,
+                    Name = g.Name
+                })
+                .OrderBy(g => g.Name)
+                .ToListAsync();
+
+            // 3. Récupérer les niveaux d'éducation
+            formData.EducationLevels = await _db.EducationLevels
+                .Where(e => e.DeletedAt == null)
+                .Select(e => new EducationLevelDto
+                {
+                    Id = e.Id,
+                    Name = e.Name
+                })
+                .OrderBy(e => e.Name)
+                .ToListAsync();
+
+            // 4. Récupérer les statuts matrimoniaux
+            formData.MaritalStatuses = await _db.MaritalStatuses
+                .Where(m => m.DeletedAt == null)
+                .Select(m => new MaritalStatusDto
+                {
+                    Id = m.Id,
+                    Name = m.Name
+                })
+                .OrderBy(m => m.Name)
+                .ToListAsync();
+
+            // 5. Récupérer les pays
+            formData.Countries = await _db.Countries
+                .Where(c => c.DeletedAt == null)
+                .Select(c => new CountryDto
+                {
+                    Id = c.Id,
+                    CountryName = c.CountryName,
+                    CountryPhoneCode = c.CountryPhoneCode
+                })
+                .OrderBy(c => c.CountryName)
+                .ToListAsync();
+
+            // 6. Récupérer les villes
+            formData.Cities = await _db.Cities
+                .Where(c => c.DeletedAt == null)
+                .Include(c => c.Country)
+                .Select(c => new CityDto
+                {
+                    Id = c.Id,
+                    CityName = c.CityName,
+                    CountryId = c.CountryId,
+                    CountryName = c.Country != null ? c.Country.CountryName : null
+                })
+                .OrderBy(c => c.CountryName)
+                .ThenBy(c => c.CityName)
+                .ToListAsync();
+
+            // 7. Récupérer les départements de l'entreprise
+            formData.Departements = await _db.Departement
+                .Where(d => d.DeletedAt == null && d.CompanyId == targetCompanyId)
+                .Select(d => new DepartementDto
+                {
+                    Id = d.Id,
+                    DepartementName = d.DepartementName,
+                    CompanyId = d.CompanyId
+                })
+                .OrderBy(d => d.DepartementName)
+                .ToListAsync();
+
+            // 8. Récupérer les postes de l'entreprise
+            formData.JobPositions = await _db.JobPositions
+                .Where(j => j.DeletedAt == null && j.CompanyId == targetCompanyId)
+                .Select(j => new JobPositionDto
+                {
+                    Id = j.Id,
+                    Name = j.Name,
+                    CompanyId = j.CompanyId
+                })
+                .OrderBy(j => j.Name)
+                .ToListAsync();
+
+            // 9. Récupérer les types de contrat de l'entreprise
+            formData.ContractTypes = await _db.ContractTypes
+                .Where(c => c.DeletedAt == null && c.CompanyId == targetCompanyId)
+                .Select(c => new ContractTypeDto
+                {
+                    Id = c.Id,
+                    ContractTypeName = c.ContractTypeName,
+                    CompanyId = c.CompanyId
+                })
+                .OrderBy(c => c.ContractTypeName)
+                .ToListAsync();
+
+            // 10. Récupérer les managers potentiels (employés actifs de l'entreprise)
+            formData.PotentialManagers = await _db.Employees
+                .Where(e => e.DeletedAt == null && e.CompanyId == targetCompanyId)
+                .Include(e => e.Departement)
+                .Select(e => new EmployeeDto
+                {
+                    Id = e.Id,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    FullName = e.FirstName + " " + e.LastName,
+                    DepartementName = e.Departement != null ? e.Departement.DepartementName : null
+                })
+                .OrderBy(e => e.LastName)
+                .ThenBy(e => e.FirstName)
+                .ToListAsync();
+            // 11. Récupérer les nationalités
+            formData.Nationalities = await _db.Nationalities
+                .Where(n => n.DeletedAt == null)
+                .Select(n => new NationalityDto
+                {
+                    Id = n.Id,
+                    Name = n.Name
+                })
+                .OrderBy(n => n.Name)
+                .ToListAsync();
+
+            return Ok(formData);
         }
 
         private static string MapStatusToFrontend(string statusName)

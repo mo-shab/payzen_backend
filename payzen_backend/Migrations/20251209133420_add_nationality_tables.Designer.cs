@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using payzen_backend.Data;
 
@@ -11,9 +12,11 @@ using payzen_backend.Data;
 namespace payzen_backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251209133420_add_nationality_tables")]
+    partial class add_nationality_tables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -370,8 +373,8 @@ namespace payzen_backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CimrNumber")
-                        .HasColumnType("nvarchar(max)")
+                    b.Property<int?>("CimrNumber")
+                        .HasColumnType("int")
                         .HasColumnName("cimr_number");
 
                     b.Property<string>("CinNumber")
@@ -380,8 +383,8 @@ namespace payzen_backend.Migrations
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("cin_number");
 
-                    b.Property<string>("CnssNumber")
-                        .HasColumnType("nvarchar(max)")
+                    b.Property<int?>("CnssNumber")
+                        .HasColumnType("int")
                         .HasColumnName("cnss_number");
 
                     b.Property<int>("CompanyId")
@@ -460,9 +463,8 @@ namespace payzen_backend.Migrations
                     b.Property<int?>("NationalityId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                    b.Property<int>("Phone")
+                        .HasColumnType("int")
                         .HasColumnName("phone");
 
                     b.Property<int?>("StatusId")
@@ -1490,7 +1492,7 @@ namespace payzen_backend.Migrations
                         .HasForeignKey("MaritalStatusId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("payzen_backend.Models.Referentiel.Nationality", "Nationality")
+                    b.HasOne("payzen_backend.Models.Referentiel.Nationality", null)
                         .WithMany("Employees")
                         .HasForeignKey("NationalityId");
 
@@ -1510,8 +1512,6 @@ namespace payzen_backend.Migrations
                     b.Navigation("Manager");
 
                     b.Navigation("MaritalStatus");
-
-                    b.Navigation("Nationality");
 
                     b.Navigation("Status");
                 });

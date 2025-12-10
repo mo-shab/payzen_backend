@@ -6,6 +6,7 @@ using payzen_backend.Models.Employee;
 using payzen_backend.Models.Employee.Dtos;
 using payzen_backend.Authorization;
 using payzen_backend.Extensions;
+using payzen_backend.Services;
 
 namespace payzen_backend.Controllers.Employees
 {
@@ -15,8 +16,13 @@ namespace payzen_backend.Controllers.Employees
     public class EmployeeSalaryComponentsController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly EventService _eventService;
 
-        public EmployeeSalaryComponentsController(AppDbContext db) => _db = db;
+        public EmployeeSalaryComponentsController(AppDbContext db, EventService eventService)
+        {
+            _db = db;
+            _eventService = eventService;
+        }
 
         /// <summary>
         /// Récupère tous les composants de salaire
@@ -122,8 +128,11 @@ namespace payzen_backend.Controllers.Employees
                     Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
                 });
 
-            var salaryExists = await _db.EmployeeSalaries.AnyAsync(es => es.Id == dto.EmployeeSalaryId && es.DeletedAt == null);
-            if (!salaryExists)
+            var salary = await _db.EmployeeSalaries
+                .Include(s => s.Employee)
+                .FirstOrDefaultAsync(es => es.Id == dto.EmployeeSalaryId && es.DeletedAt == null);
+
+            if (salary == null)
                 return NotFound(new { Message = "Salaire non trouvé" });
 
             // Validation des dates
@@ -143,6 +152,13 @@ namespace payzen_backend.Controllers.Employees
 
             _db.EmployeeSalaryComponents.Add(component);
             await _db.SaveChangesAsync();
+
+            await _eventService.CreateEventAsync(
+                employeeId: salary.EmployeeId,
+                eventTypeId: EventService.EventTypes.SalaryComponentAdded,
+                createdBy: User.GetUserId(),
+                eventTime: dto.EffectiveDate
+             );
 
             var createdComponent = await _db.EmployeeSalaryComponents
                 .AsNoTracking()
@@ -220,6 +236,65 @@ namespace payzen_backend.Controllers.Employees
             };
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Clôture un composant et crée une nouvelle version (nouvel objet) avec dates révisées.
+        /// Ancien composant : EndDate mis à jour + ModifiedAt
+        /// Nouveau composant : reprend les infos du précédent sauf EffectiveDate modifiée.
+        /// </summary>
+        [HttpPost("revise/{id}")]
+        public async Task<IActionResult> Revise(int id, [FromBody] EmployeeSalaryComponentUpdateDto dto)
+        {
+            // 1) Recuperation de l'ancien composant
+            var oldComponent = await _db.EmployeeSalaryComponents
+                .FirstOrDefaultAsync(esc => esc.Id == id && esc.DeletedAt == null);
+
+            if (oldComponent == null)
+                return NotFound(new { Message = "Composant non trouvé" });
+
+            // Validation Date de fin
+            if (dto.EffectiveDate.HasValue && dto.EffectiveDate.Value <= oldComponent.EffectiveDate)
+                return BadRequest(new { Message = "La nouvelle date effective doit être supérieure à l'ancienne" });
+
+            // 2) Fermeture de l'ancien composant
+            oldComponent.EndDate = dto.EffectiveDate ?? DateTimeOffset.UtcNow.DateTime;
+            oldComponent.ModifiedAt = DateTimeOffset.UtcNow;
+            oldComponent.ModifiedBy = User.GetUserId();
+
+            // 3) Création du nouveau composant (révision)
+            var newComponent = new EmployeeSalaryComponent
+            {
+                EmployeeSalaryId = oldComponent.EmployeeSalaryId,
+                ComponentType = dto.ComponentType ?? oldComponent.ComponentType,
+                Amount = dto.Amount ?? oldComponent.Amount,
+                EffectiveDate = dto.EffectiveDate ?? DateTimeOffset.UtcNow.DateTime,
+                EndDate = dto.EndDate, // facultatif
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = User.GetUserId()
+            };
+
+            await _db.EmployeeSalaryComponents.AddAsync(newComponent);
+            await _db.SaveChangesAsync();
+
+            // 4) Retour du nouveau composant
+            return Ok(new
+            {
+                Message = "Composant révisé avec succès",
+                OldVersion = new
+                {
+                    oldComponent.Id,
+                    oldComponent.EndDate,
+                    oldComponent.ModifiedAt
+                },
+                NewVersion = new
+                {
+                    newComponent.Id,
+                    newComponent.Amount,
+                    newComponent.EffectiveDate,
+                    newComponent.EndDate
+                }
+            });
         }
 
         /// <summary>

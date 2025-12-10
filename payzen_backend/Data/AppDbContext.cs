@@ -36,6 +36,7 @@ namespace payzen_backend.Data
         public DbSet<Gender> Genders { get; set; }
         public DbSet<EducationLevel> EducationLevels { get; set; }
         public DbSet<MaritalStatus> MaritalStatuses { get; set; }
+        public DbSet<Nationality> Nationalities { get; set; }
 
         // ========== Tables Employee ==========
         public DbSet<Employee> Employees { get; set; }
@@ -47,7 +48,7 @@ namespace payzen_backend.Data
 
         // =========== Tables Events ================
         public DbSet<EventType> EventTypes { get; set; }
-        public DbSet<EventsEmployee> EventsEmployees { get; set; }
+        public DbSet<EventsEmployee> EventsEmployee { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -137,7 +138,6 @@ namespace payzen_backend.Data
                 entity.Property(c => c.CountryNameAr).HasMaxLength(500);
                 entity.Property(c => c.CountryCode).IsRequired().HasMaxLength(3);
                 entity.Property(c => c.CountryPhoneCode).IsRequired().HasMaxLength(10);
-                //entity.Property(c => c.Nationality).IsRequired().HasMaxLength(500);
             });
 
             modelBuilder.Entity<City>(entity =>
@@ -182,6 +182,13 @@ namespace payzen_backend.Data
                 entity.HasKey(ms => ms.Id);
                 entity.HasIndex(ms => ms.Name).IsUnique().HasFilter("[DeletedAt] IS NULL");
                 entity.Property(ms => ms.Name).IsRequired().HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<Nationality>(entity =>
+            {
+                entity.ToTable("Nationality");
+                entity.HasKey(n => n.Id);
+                entity.HasIndex(n => n.Name).IsUnique().HasFilter("[DeletedAt] IS NULL");
             });
 
             // ========================================
@@ -321,6 +328,8 @@ namespace payzen_backend.Data
                 //entity.Property(e => e.NationalityId).HasColumnName("nationality_id");
                 entity.Property(e => e.EducationLevelId).HasColumnName("education_level_id");
                 entity.Property(e => e.MaritalStatusId).HasColumnName("marital_status_id");
+                entity.Property(e => e.CnssNumber).HasColumnName("cnss_number");
+                entity.Property(e => e.CimrNumber).HasColumnName("cimr_number");
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at");
                 entity.Property(e => e.CreatedBy).HasColumnName("created_by");
                 entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");

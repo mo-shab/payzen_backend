@@ -10,7 +10,7 @@ namespace payzen_backend.Models.Employee.Dtos
         public DateTime DateOfBirth { get; set; }
         public string? StatusName { get; set; }
         public string Email { get; set; } = string.Empty;
-        public int Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
         public string? CountryPhoneCode { get; set; }
         
         // Adresse
@@ -21,15 +21,16 @@ namespace payzen_backend.Models.Employee.Dtos
         public string? ManagerName { get; set; }
         public DateTime? ContractStartDate { get; set; }
         public string? ContractTypeName { get; set; }
+        public string? departments { get; set; }
         // Informations salariales
         public decimal? BaseSalary { get; set; }
         public List<SalaryComponentDto> SalaryComponents { get; set; } = new();
         public decimal TotalSalary { get; set; }
         
         // Cotisations
-        public int? CNSS { get; set; }
-        public int? AMO { get; set; }
-        public int? CIMR { get; set; }
+        public string? CNSS { get; set; }
+        public string? AmoNumber { get; set; }
+        public string? CIMR { get; set; }
         // Evenements
         public List<dynamic> Events { get; set; } = new();
 

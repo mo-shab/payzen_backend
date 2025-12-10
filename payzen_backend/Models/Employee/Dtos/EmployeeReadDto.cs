@@ -9,7 +9,7 @@ namespace payzen_backend.Models.Employee.Dtos
         public string LastName { get; set; } = string.Empty;
         public string CinNumber { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
-        public int Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
@@ -23,6 +23,8 @@ namespace payzen_backend.Models.Employee.Dtos
         public int? NationalityId { get; set; }
         public int? EducationLevelId { get; set; }
         public int? MaritalStatusId { get; set; }
+        public string? CnssNumber { get; set; }
+        public string? CimrNumber { get; set; }
         public string? JobPostionName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }

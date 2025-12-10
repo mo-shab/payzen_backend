@@ -15,8 +15,5 @@ namespace payzen_backend.Models.Referentiel.Dtos
 
         [StringLength(10, ErrorMessage = "Le code téléphonique ne peut pas dépasser 10 caractères")]
         public string? CountryPhoneCode { get; set; }
-
-        [StringLength(500, ErrorMessage = "La nationalité ne peut pas dépasser 500 caractères")]
-        public string? Nationality { get; set; }
     }
 }
