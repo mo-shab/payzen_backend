@@ -431,21 +431,46 @@ namespace payzen_backend.Controllers.Employees
 
             var userId = User.GetUserId();
 
+            // Récupérer l'utilisateur authentifié pour obtenir son CompanyId
+            var currentUser = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (currentUser?.Employee == null)
+            {
+                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
+            }
+
+            // Utiliser le CompanyId fourni ou celui de l'utilisateur connecté
+            var companyId = dto.CompanyId ?? currentUser.Employee.CompanyId;
+
             // Vérifier que la société existe
-            var companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId && c.DeletedAt == null);
+            var companyExists = await _db.Companies.AnyAsync(c => c.Id == companyId && c.DeletedAt == null);
             if (!companyExists)
                 return NotFound(new { Message = "Société non trouvée" });
 
+            // Vérifier les permissions : l'utilisateur peut-il créer un employé pour une autre société ?
+            if (dto.CompanyId.HasValue && dto.CompanyId.Value != currentUser.Employee.CompanyId)
+            {
+                // TODO: Vérifier si l'utilisateur a les permissions pour créer des employés dans d'autres sociétés
+                // Pour l'instant, on interdit
+                return Forbid();
+            }
+
             // Vérifier que le département existe et appartient à la bonne société
-            var departement = await _db.Departement
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == dto.DepartementId && d.DeletedAt == null);
+            if (dto.DepartementId.HasValue)
+            {
+                var departement = await _db.Departement
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.Id == dto.DepartementId && d.DeletedAt == null);
 
-            if (departement == null)
-                return NotFound(new { Message = "Département non trouvé" });
+                if (departement == null)
+                    return NotFound(new { Message = "Département non trouvé" });
 
-            if (departement.CompanyId != dto.CompanyId)
-                return BadRequest(new { Message = "Le département ne correspond pas à la société spécifiée" });
+                if (departement.CompanyId != companyId)
+                    return BadRequest(new { Message = "Le département ne correspond pas à la société spécifiée" });
+            }
 
             // Vérifier que le CIN n'existe pas déjà
             if (await _db.Employees.AnyAsync(e => e.CinNumber == dto.CinNumber && e.DeletedAt == null))
@@ -467,7 +492,7 @@ namespace payzen_backend.Controllers.Employees
                     return NotFound(new { Message = "Manager non trouvé" });
             }
 
-            // Créer l'employé
+            // Créer l'employé avec le CompanyId déterminé
             var employee = new Employee
             {
                 FirstName = dto.FirstName,
@@ -476,7 +501,7 @@ namespace payzen_backend.Controllers.Employees
                 DateOfBirth = dto.DateOfBirth,
                 Phone = dto.Phone,
                 Email = dto.Email,
-                CompanyId = dto.CompanyId,
+                CompanyId = companyId,  // Utiliser le companyId déterminé
                 DepartementId = dto.DepartementId,
                 ManagerId = dto.ManagerId,
                 StatusId = dto.StatusId,

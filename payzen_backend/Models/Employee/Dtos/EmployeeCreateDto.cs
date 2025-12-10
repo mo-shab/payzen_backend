@@ -32,10 +32,8 @@ namespace payzen_backend.Models.Employee.Dtos
         [EmailAddress(ErrorMessage = "Format d'email invalide")]
         [StringLength(500, ErrorMessage = "L'email ne peut pas dépasser 500 caractères")]
         public required string Email { get; set; }
-
-        [Required(ErrorMessage = "L'ID de la société est requis")]
         [Range(1, int.MaxValue, ErrorMessage = "L'ID de la société doit être valide")]
-        public required int CompanyId { get; set; }
+        public int? CompanyId { get; set; }
 
         [Required(ErrorMessage = "L'ID du statut est requis")]
         [Range(1, int.MaxValue, ErrorMessage = "L'ID du statut doit être valide")]
