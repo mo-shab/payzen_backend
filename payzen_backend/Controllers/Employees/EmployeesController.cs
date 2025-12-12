@@ -12,6 +12,7 @@ using payzen_backend.Models.Event;
 using payzen_backend.Services;
 using payzen_backend.Models.Permissions;
 using payzen_backend.Models.Permissions.Dtos;
+using Microsoft.AspNetCore.JsonPatch;
 
 
 using static payzen_backend.Models.Permissions.PermissionsConstants;
@@ -1368,6 +1369,128 @@ namespace payzen_backend.Controllers.Employees
 
             return Ok(readDto);
         }
+
+        /// <summary>
+        /// Mise à jour partielle d'un employé
+        /// </summary>
+        [HttpPatch("{id}")]
+        // [HasPermission(EDIT_EMPLOYEE)]
+        public async Task<ActionResult<EmployeeReadDto>> PartialUpdate(int id, [FromBody] EmployeeUpdateDto dto)
+        {
+            Console.WriteLine("=== PATCH appelé depuis le frontend ===");
+            
+            if (dto == null)
+                return BadRequest(new { Message = "Données de mise à jour invalides" });
+
+            var userId = User.GetUserId();
+            Console.WriteLine($"User ID: {userId}");
+
+            // Récupérer l'utilisateur authentifié
+            var currentUser = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (currentUser?.Employee == null)
+                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
+
+            // Récupérer l'employé existant avec toutes ses relations
+            var employee = await _db.Employees
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
+                .Include(e => e.Salaries!.Where(s => s.DeletedAt == null && s.EndDate == null))
+                .Include(e => e.Addresses!.Where(a => a.DeletedAt == null))
+                .FirstOrDefaultAsync(e => e.Id == id && e.DeletedAt == null);
+
+            if (employee == null)
+                return NotFound(new { Message = "Employé non trouvé" });
+
+            Console.WriteLine($"Employé trouvé: {employee.FirstName} {employee.LastName}");
+
+            // Vérifier les permissions
+            if (employee.CompanyId != currentUser.Employee.CompanyId)
+            {
+                return Forbid();
+            }
+
+            // Récupérer le contrat actif
+            var activeContract = employee.Contracts?
+                .Where(c => c.DeletedAt == null && c.EndDate == null)
+                .OrderByDescending(c => c.StartDate)
+                .FirstOrDefault();
+
+            // Récupérer le salaire actif
+            var activeSalary = employee.Salaries?
+                .Where(s => s.DeletedAt == null && s.EndDate == null)
+                .OrderByDescending(s => s.EffectiveDate)
+                .FirstOrDefault();
+
+            // Récupérer l'adresse active
+            var activeAddress = employee.Addresses?
+                .Where(a => a.DeletedAt == null)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefault();
+
+            // Créer un DTO complet avec les valeurs actuelles
+            var completeDto = new EmployeeUpdateDto
+            {
+                // Informations principales
+                FirstName = dto.FirstName ?? employee.FirstName,
+                LastName = dto.LastName ?? employee.LastName,
+                CinNumber = dto.CinNumber ?? employee.CinNumber,
+                DateOfBirth = dto.DateOfBirth ?? employee.DateOfBirth,
+                Phone = dto.Phone ?? employee.Phone,
+                Email = dto.Email ?? employee.Email,
+                DepartementId = dto.DepartementId ?? employee.DepartementId,
+                ManagerId = dto.ManagerId ?? employee.ManagerId,
+                StatusId = dto.StatusId ?? employee.StatusId,
+                GenderId = dto.GenderId ?? employee.GenderId,
+                NationalityId = dto.NationalityId ?? employee.NationalityId,
+                EducationLevelId = dto.EducationLevelId ?? employee.EducationLevelId,
+                MaritalStatusId = dto.MaritalStatusId ?? employee.MaritalStatusId,
+                CnssNumber = dto.CnssNumber ?? (string.IsNullOrEmpty(employee.CnssNumber) ? null : int.TryParse(employee.CnssNumber, out var cnss) ? cnss : null),
+                CimrNumber = dto.CimrNumber ?? (string.IsNullOrEmpty(employee.CimrNumber) ? null : int.TryParse(employee.CimrNumber, out var cimr) ? cimr : null),
+
+                // Informations de contrat
+                JobPositionId = dto.JobPositionId ?? activeContract?.JobPositionId,
+                ContractTypeId = dto.ContractTypeId ?? activeContract?.ContractTypeId,
+                ContractStartDate = dto.ContractStartDate ?? activeContract?.StartDate,
+
+                // Informations de salaire
+                Salary = dto.Salary ?? activeSalary?.BaseSalary,
+                SalaryEffectiveDate = dto.SalaryEffectiveDate ?? activeSalary?.EffectiveDate,
+
+                // Informations d'adresse
+                AddressLine1 = dto.AddressLine1 ?? activeAddress?.AddressLine1,
+                AddressLine2 = dto.AddressLine2 ?? activeAddress?.AddressLine2,
+                ZipCode = dto.ZipCode ?? activeAddress?.ZipCode,
+                CityId = dto.CityId ?? activeAddress?.CityId
+            };
+
+    Console.WriteLine("=== Données reçues ===");
+    Console.WriteLine($"FirstName: {dto.FirstName}");
+    Console.WriteLine($"LastName: {dto.LastName}");
+    Console.WriteLine($"Email: {dto.Email}");
+    Console.WriteLine($"Phone: {dto.Phone}");
+    Console.WriteLine("====================");
+
+    // Valider le modèle
+    if (!TryValidateModel(completeDto))
+    {
+        Console.WriteLine("Validation échouée:");
+        foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+        {
+            Console.WriteLine($"- {error.ErrorMessage}");
+        }
+        return BadRequest(ModelState);
+    }
+
+    // Appeler la méthode de mise à jour complète avec le DTO fusionné
+    var result = await Update(id, completeDto);
+    
+    Console.WriteLine("=== Mise à jour terminée ===");
+    
+    return result;
+}
 
         /// <summary>
         /// Supprime un employé (soft delete)
