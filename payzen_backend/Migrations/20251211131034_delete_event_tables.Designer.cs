@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using payzen_backend.Data;
 
@@ -11,9 +12,11 @@ using payzen_backend.Data;
 namespace payzen_backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251211131034_delete_event_tables")]
+    partial class delete_event_tables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -771,7 +774,7 @@ namespace payzen_backend.Migrations
                     b.ToTable("EmployeeSalaryComponent", (string)null);
                 });
 
-            modelBuilder.Entity("payzen_backend.Models.Event.EmployeeEventLog", b =>
+            modelBuilder.Entity("payzen_backend.Models.Event.EventType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -779,41 +782,62 @@ namespace payzen_backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset>("createdAt")
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventType", (string)null);
+                });
+
+            modelBuilder.Entity("payzen_backend.Models.Event.EventsEmployee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("createdBy")
+                    b.Property<int>("CreatedBy")
                         .HasColumnType("int");
 
-                    b.Property<int>("employeeId")
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("DeletedBy")
                         .HasColumnType("int");
 
-                    b.Property<string>("eventName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("newValue")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("newValueId")
+                    b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
-                    b.Property<string>("oldValue")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                    b.Property<DateTime>("EventTime")
+                        .HasColumnType("datetime2");
 
-                    b.Property<int?>("oldValueId")
+                    b.Property<int>("EventTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("createdBy");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("employeeId");
+                    b.HasIndex("EventTypeId");
 
-                    b.ToTable("EmployeeEventLog", (string)null);
+                    b.ToTable("EventsEmployee", (string)null);
                 });
 
             modelBuilder.Entity("payzen_backend.Models.Permissions.Permissions", b =>
@@ -1594,19 +1618,23 @@ namespace payzen_backend.Migrations
                     b.Navigation("EmployeeSalary");
                 });
 
-            modelBuilder.Entity("payzen_backend.Models.Event.EmployeeEventLog", b =>
+            modelBuilder.Entity("payzen_backend.Models.Event.EventsEmployee", b =>
                 {
-                    b.HasOne("payzen_backend.Models.Users.Users", null)
+                    b.HasOne("payzen_backend.Models.Employee.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("createdBy")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("payzen_backend.Models.Employee.Employee", null)
-                        .WithMany()
-                        .HasForeignKey("employeeId")
+                    b.HasOne("payzen_backend.Models.Event.EventType", "EventType")
+                        .WithMany("EventsEmployees")
+                        .HasForeignKey("EventTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("EventType");
                 });
 
             modelBuilder.Entity("payzen_backend.Models.Permissions.RolesPermissions", b =>
@@ -1711,6 +1739,11 @@ namespace payzen_backend.Migrations
             modelBuilder.Entity("payzen_backend.Models.Employee.EmployeeSalary", b =>
                 {
                     b.Navigation("Components");
+                });
+
+            modelBuilder.Entity("payzen_backend.Models.Event.EventType", b =>
+                {
+                    b.Navigation("EventsEmployees");
                 });
 
             modelBuilder.Entity("payzen_backend.Models.Referentiel.City", b =>

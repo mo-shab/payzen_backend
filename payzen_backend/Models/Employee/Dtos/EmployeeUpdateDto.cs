@@ -4,6 +4,7 @@ namespace payzen_backend.Models.Employee.Dtos
 {
     public class EmployeeUpdateDto
     {
+        // ===== DONNÉES PRINCIPALES (Employee) =====
         [StringLength(500, MinimumLength = 2, ErrorMessage = "Le prénom doit contenir entre 2 et 500 caractères")]
         public string? FirstName { get; set; }
 
@@ -20,9 +21,6 @@ namespace payzen_backend.Models.Employee.Dtos
         [StringLength(500, ErrorMessage = "L'email ne peut pas dépasser 500 caractères")]
         public string? Email { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "L'ID de la société doit être valide")]
-        public int? CompanyId { get; set; }
-
         [Range(1, int.MaxValue, ErrorMessage = "L'ID du departement doit être valide")]
         public int? DepartementId { get; set; }
 
@@ -34,5 +32,22 @@ namespace payzen_backend.Models.Employee.Dtos
         public int? MaritalStatusId { get; set; }
         public int? CnssNumber { get; set; }
         public int? CimrNumber { get; set; }
+
+        // ===== DONNÉES AVEC HISTORIQUE =====
+        // Contrat - Si fourni, créera un nouveau contrat et fermera l'ancien
+        public int? JobPositionId { get; set; }
+        public int? ContractTypeId { get; set; }
+        public DateTime? ContractStartDate { get; set; }
+
+        // Salaire - Si fourni, créera un nouveau salaire et fermera l'ancien
+        [Range(0.01, double.MaxValue, ErrorMessage = "Le salaire doit être supérieur à 0")]
+        public decimal? Salary { get; set; }
+        public DateTime? SalaryEffectiveDate { get; set; }
+
+        // Adresse - Si fourni, créera une nouvelle adresse
+        public string? AddressLine1 { get; set; }
+        public string? AddressLine2 { get; set; }
+        public string? ZipCode { get; set; }
+        public int? CityId { get; set; }
     }
 }

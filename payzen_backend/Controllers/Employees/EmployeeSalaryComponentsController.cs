@@ -16,12 +16,10 @@ namespace payzen_backend.Controllers.Employees
     public class EmployeeSalaryComponentsController : ControllerBase
     {
         private readonly AppDbContext _db;
-        private readonly EventService _eventService;
 
-        public EmployeeSalaryComponentsController(AppDbContext db, EventService eventService)
+        public EmployeeSalaryComponentsController(AppDbContext db)
         {
             _db = db;
-            _eventService = eventService;
         }
 
         /// <summary>
@@ -152,13 +150,6 @@ namespace payzen_backend.Controllers.Employees
 
             _db.EmployeeSalaryComponents.Add(component);
             await _db.SaveChangesAsync();
-
-            await _eventService.CreateEventAsync(
-                employeeId: salary.EmployeeId,
-                eventTypeId: EventService.EventTypes.SalaryComponentAdded,
-                createdBy: User.GetUserId(),
-                eventTime: dto.EffectiveDate
-             );
 
             var createdComponent = await _db.EmployeeSalaryComponents
                 .AsNoTracking()

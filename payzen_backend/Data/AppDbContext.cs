@@ -46,10 +46,8 @@ namespace payzen_backend.Data
         public DbSet<EmployeeAddress> EmployeeAddresses { get; set; }
         public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
 
-        // =========== Tables Events ================
-        public DbSet<EventType> EventTypes { get; set; }
-        public DbSet<EventsEmployee> EventsEmployee { get; set; }
-
+        // =========== Tables Events Log ================
+        public DbSet<EmployeeEventLog> EmployeeEventLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -474,29 +472,22 @@ namespace payzen_backend.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
             
-            modelBuilder.Entity<EventType>(entity =>
+            modelBuilder.Entity<EmployeeEventLog>(entity =>
             {
-                entity.ToTable("EventType");
-                entity.HasKey(et => et.Id);
-                entity.Property(et => et.Name).IsRequired().HasMaxLength(100);
-                entity.Property(et => et.Description).HasMaxLength(500);
-            });
-
-            modelBuilder.Entity<EventsEmployee>(entity =>
-            {
-                entity.ToTable("EventsEmployee");
-                entity.HasKey(ee => ee.Id);
-
-                entity.Property(ee => ee.EventTime).IsRequired();
-
-                entity.HasOne(ee => ee.Employee)
+                entity.ToTable("EmployeeEventLog");
+                entity.HasKey(eel => eel.Id);
+                
+                entity.Property(eel => eel.eventName).IsRequired().HasMaxLength(200);
+                entity.Property(eel => eel.oldValue).HasMaxLength(1000);
+                entity.Property(eel => eel.newValue).HasMaxLength(1000);
+                entity.Property(eel => eel.createdAt).IsRequired();
+                entity.HasOne<Users>()
                     .WithMany()
-                    .HasForeignKey(ee => ee.EmployeeId)
+                    .HasForeignKey(eel => eel.createdBy)
                     .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(ee => ee.EventType)
-                    .WithMany(et => et.EventsEmployees)
-                    .HasForeignKey(ee => ee.EventTypeId)
+                entity.HasOne<Employee>()
+                    .WithMany()
+                    .HasForeignKey(eel => eel.employeeId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

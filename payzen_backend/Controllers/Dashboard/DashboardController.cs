@@ -82,6 +82,7 @@ namespace payzen_backend.Controllers.Dashboard
             // Récupération des employés avec toutes les relations nécessaires (filtrés par CompanyId)
             var employees = await _db.Employees
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(e => e.DeletedAt == null && e.CompanyId == companyId)
                 .Include(e => e.Company)
                 .Include(e => e.Departement)
@@ -115,7 +116,7 @@ namespace payzen_backend.Controllers.Dashboard
                             .Select(c => c.StartDate.ToString("yyyy-MM-dd"))
                             .FirstOrDefault() ?? ""
                         : "",
-                    MissingDocuments = e.Documents != null 
+                    MissingDocuments = e.Documents != null
                         ? e.Documents.Count(d => d.DeletedAt == null && string.IsNullOrEmpty(d.FilePath))
                         : 0,
                     ContractType = e.Contracts != null
@@ -125,13 +126,14 @@ namespace payzen_backend.Controllers.Dashboard
                             .Select(c => c.ContractType!.ContractTypeName)
                             .FirstOrDefault() ?? ""
                         : "",
-                    Manager = e.Manager != null 
-                        ? $"{e.Manager.FirstName} {e.Manager.LastName}" 
+                    Manager = e.Manager != null
+                        ? $"{e.Manager.FirstName} {e.Manager.LastName}"
                         : null
                 })
                 .ToListAsync();
 
-           
+
+
 
             var response = new DashboardResponseDto
             {

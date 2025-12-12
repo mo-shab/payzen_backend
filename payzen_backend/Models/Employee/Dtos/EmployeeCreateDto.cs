@@ -63,9 +63,9 @@ namespace payzen_backend.Models.Employee.Dtos
         
         [StringLength(500, ErrorMessage = "L'adresse ligne 2 ne peut pas dépasser 500 caractères")]
         public string? AddressLine2 { get; set; }
-        
+
         [StringLength(20, ErrorMessage = "Le code postal ne peut pas dépasser 20 caractères")]
-        public string? ZipCode { get; set; }
+        public string? ZipCode { get; set; } = string.Empty;
 
         // ========== Informations Contrat (Optionnelles) ==========
         

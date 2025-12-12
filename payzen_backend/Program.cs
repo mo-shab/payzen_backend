@@ -60,7 +60,7 @@ builder.Services
 
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PasswordGeneratorService>();
-builder.Services.AddScoped<EventService>();
+builder.Services.AddScoped<EmployeeEventLogService>();
 builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
