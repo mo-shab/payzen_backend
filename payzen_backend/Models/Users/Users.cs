@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using payzen_backend.Models.Permissions;
+using System.Security.Cryptography;
 
 namespace payzen_backend.Models.Users
 {
@@ -19,7 +20,8 @@ namespace payzen_backend.Models.Users
 
         // Navigation property pour Employee (IMPORTANT)
         public Employee.Employee? Employee { get; set; }
-
+        // Navigation property pour UsersRoles
+        public ICollection<UsersRoles>? UsersRoles { get; set; }
         // Vérifier le mot de passe avec BCrypt
         public bool VerifyPassword(string password)
         {

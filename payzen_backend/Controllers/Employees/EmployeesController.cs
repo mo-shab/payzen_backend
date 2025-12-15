@@ -118,6 +118,8 @@ namespace payzen_backend.Controllers.Employees
         //[HasPermission(VIEW_EMPLOYEE)]
         public async Task<ActionResult<EmployeeDetailDto>> GetEmployeeDetails(int id)
         {
+            var userId = User.GetUserId();
+
             var employee = await _db.Employees
                 .AsNoTracking()
                 .Where(e => e.Id == id && e.DeletedAt == null)
@@ -126,7 +128,6 @@ namespace payzen_backend.Controllers.Employees
                 .Include(e => e.Departement)
                 .Include(e => e.Status)
                 .Include(e => e.MaritalStatus)
-                //.Include(e => e.NationalityId)
                 .Include(e => e.Addresses!.Where(a => a.DeletedAt == null))
                     .ThenInclude(e => e.City)
                     .ThenInclude(e => e.Country)
@@ -138,10 +139,27 @@ namespace payzen_backend.Controllers.Employees
                     .ThenInclude(s => s.Components!.Where(c => c.DeletedAt == null && c.EndDate == null))
                 .FirstOrDefaultAsync();
 
-
             if (employee == null)
                 return NotFound(new { Message = "Employé non trouvé" });
 
+            // ===== VÉRIFIER LE RÔLE DE L'UTILISATEUR ACTUEL =====
+            var currentUser = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.UsersRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            bool isRH = currentUser?.UsersRoles?.Any(ur =>
+                ur.Role.Name.Equals("RH", StringComparison.OrdinalIgnoreCase)
+            ) ?? false;
+
+            Console.WriteLine($"isRH is : {isRH}");
+
+            bool isAdmin = currentUser?.UsersRoles?.Any(ur =>
+                ur.Role.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            ) ?? false;
+
+            Console.WriteLine($"IsAdmin is : {isAdmin}");
             // Récupérer le contrat actif
             var activeContract = employee.Contracts?
                 .Where(c => c.DeletedAt == null && c.EndDate == null)
@@ -158,7 +176,7 @@ namespace payzen_backend.Controllers.Employees
             var activeAddress = employee.Addresses?
                 .Where(a => a.DeletedAt == null)
                 .OrderByDescending(a => a.CreatedAt)
-                .FirstOrDefault();         
+                .FirstOrDefault();
 
             // Calculer les composants salariaux
             var salaryComponents = activeSalary?.Components?
@@ -174,6 +192,300 @@ namespace payzen_backend.Controllers.Employees
             decimal baseSalary = activeSalary?.BaseSalary ?? 0;
             decimal totalComponents = salaryComponents.Sum(c => c.Amount);
             decimal totalSalary = baseSalary + totalComponents;
+
+            // ===== RÉCUPÉRER L'HISTORIQUE DES MODIFICATIONS =====
+            var eventLogs = await _db.EmployeeEventLogs
+                .Where(e => e.employeeId == id)
+                .OrderByDescending(e => e.createdAt)
+                .ToListAsync();
+
+            // Créer une liste pour stocker les événements formatés
+            var formattedEvents = new List<object>();
+
+            foreach (var log in eventLogs)
+            {
+                // Récupérer l'utilisateur qui a effectué la modification avec son rôle
+                var modifier = await _db.Users
+                    .AsNoTracking()
+                    .Include(u => u.Employee)
+                    .Include(u => u.UsersRoles)
+                        .ThenInclude(ur => ur.Role)
+                    .Where(u => u.Id == log.createdBy)
+                    .Select(u => new
+                    {
+                        FirstName = u.Employee != null ? u.Employee.FirstName : "Système",
+                        LastName = u.Employee != null ? u.Employee.LastName : "",
+                        RoleName = u.UsersRoles != null && u.UsersRoles.Any()
+                            ? u.UsersRoles.First().Role.Name
+                            : "Système"
+                    })
+                    .FirstOrDefaultAsync();
+
+                string modifierName = modifier != null
+                    ? $"{modifier.FirstName} {modifier.LastName}".Trim()
+                    : "Système";
+
+                string modifierRole = modifier?.RoleName ?? "Système";
+
+                // Construire l'événement selon son type
+                object eventData = null;
+
+                switch (log.eventName)
+                {
+                    case EmployeeEventLogService.EventNames.SalaryUpdated:
+                        eventData = new
+                        {
+                            Type = "salary_increase",
+                            Title = "Augmentation de salaire",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"Salaire de base: {log.oldValue} MAD → {log.newValue} MAD"
+                                : "Modification du salaire de base",
+                            Details = isRH ? new
+                            {
+                                OldSalary = log.oldValue,
+                                NewSalary = log.newValue,
+                                Currency = "MAD"
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.JobPositionChanged:
+                        eventData = new
+                        {
+                            Type = "promotion",
+                            Title = "Promotion",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"{log.oldValue} → {log.newValue}"
+                                : "Changement de poste",
+                            Details = isRH ? new
+                            {
+                                OldPosition = log.oldValue,
+                                NewPosition = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.ContractCreated:
+                        eventData = new
+                        {
+                            Type = "contract_created",
+                            Title = "Nouveau contrat",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"Contrat créé: {log.newValue}"
+                                : "Nouveau contrat créé",
+                            Details = isRH ? new
+                            {
+                                ContractInfo = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.ContractTerminated:
+                        eventData = new
+                        {
+                            Type = "contract_terminated",
+                            Title = "Fin de contrat",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"Contrat {log.oldValue} terminé le {log.newValue}"
+                                : "Fin de contrat",
+                            Details = isRH ? new
+                            {
+                                ContractInfo = log.oldValue,
+                                EndDate = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.StatusChanged:
+                        var statusTitle = "Changement de statut";
+                        var statusDescription = "Statut modifié";
+
+                        // Détection de fin de période d'essai
+                        if (log.newValue != null &&
+                            (log.newValue.Contains("Actif", StringComparison.OrdinalIgnoreCase) ||
+                             log.newValue.Contains("Active", StringComparison.OrdinalIgnoreCase)) &&
+                            log.oldValue != null &&
+                            (log.oldValue.Contains("Essai", StringComparison.OrdinalIgnoreCase) ||
+                             log.oldValue.Contains("Trial", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            statusTitle = "Fin de période d'essai";
+                            statusDescription = "Période d'essai validée avec succès";
+                        }
+                        else if (isRH)
+                        {
+                            statusDescription = $"{log.oldValue} → {log.newValue}";
+                        }
+
+                        eventData = new
+                        {
+                            Type = "status_change",
+                            Title = statusTitle,
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = statusDescription,
+                            Details = isRH ? new
+                            {
+                                OldStatus = log.oldValue,
+                                NewStatus = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.DepartmentChanged:
+                        eventData = new
+                        {
+                            Type = "department_change",
+                            Title = "Changement de département",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"{log.oldValue} → {log.newValue}"
+                                : "Département modifié",
+                            Details = isRH ? new
+                            {
+                                OldDepartment = log.oldValue,
+                                NewDepartment = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.ManagerChanged:
+                        eventData = new
+                        {
+                            Type = "manager_change",
+                            Title = "Changement de manager",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"{log.oldValue ?? "Aucun"} → {log.newValue}"
+                                : "Manager modifié",
+                            Details = isRH ? new
+                            {
+                                OldManager = log.oldValue,
+                                NewManager = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    case EmployeeEventLogService.EventNames.AddressUpdated:
+                    case EmployeeEventLogService.EventNames.AddressCreated:
+                        eventData = new
+                        {
+                            Type = log.eventName == EmployeeEventLogService.EventNames.AddressCreated
+                                ? "address_created"
+                                : "address_updated",
+                            Title = log.eventName == EmployeeEventLogService.EventNames.AddressCreated
+                                ? "Ajout d'adresse"
+                                : "Modification d'adresse",
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? (log.oldValue != null ? $"{log.oldValue} → {log.newValue}" : log.newValue)
+                                : "Adresse modifiée",
+                            Details = isRH ? new
+                            {
+                                OldAddress = log.oldValue,
+                                NewAddress = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+
+                    // Cas par défaut pour les autres événements
+                    default:
+                        var eventTitle = log.eventName switch
+                        {
+                            EmployeeEventLogService.EventNames.FirstNameChanged => "Modification du prénom",
+                            EmployeeEventLogService.EventNames.LastNameChanged => "Modification du nom",
+                            EmployeeEventLogService.EventNames.EmailChanged => "Modification de l'email",
+                            EmployeeEventLogService.EventNames.PhoneChanged => "Modification du téléphone",
+                            EmployeeEventLogService.EventNames.CinNumberChanged => "Modification du CIN",
+                            EmployeeEventLogService.EventNames.DateOfBirthChanged => "Modification de la date de naissance",
+                            EmployeeEventLogService.EventNames.GenderChanged => "Modification du genre",
+                            EmployeeEventLogService.EventNames.MaritalStatusChanged => "Modification du statut marital",
+                            EmployeeEventLogService.EventNames.NationalityChanged => "Modification de la nationalité",
+                            EmployeeEventLogService.EventNames.EducationLevelChanged => "Modification du niveau d'éducation",
+                            EmployeeEventLogService.EventNames.CnssNumberChanged => "Modification du numéro CNSS",
+                            EmployeeEventLogService.EventNames.CimrNumberChanged => "Modification du numéro CIMR",
+                            EmployeeEventLogService.EventNames.ContractTypeChanged => "Modification du type de contrat",
+                            _ => "Modification"
+                        };
+
+                        eventData = new
+                        {
+                            Type = "general_update",
+                            Title = eventTitle,
+                            Date = log.createdAt.ToString("dd/MM/yyyy"),
+                            Description = isRH
+                                ? $"{log.oldValue ?? "N/A"} → {log.newValue ?? "N/A"}"
+                                : "Informations modifiées",
+                            Details = isRH ? new
+                            {
+                                OldValue = log.oldValue,
+                                NewValue = log.newValue
+                            } : null,
+                            ModifiedBy = new
+                            {
+                                Name = modifierName,
+                                Role = modifierRole
+                            },
+                            Timestamp = log.createdAt
+                        };
+                        break;
+                }
+
+                if (eventData != null)
+                {
+                    formattedEvents.Add(eventData);
+                }
+            }
 
             var result = new EmployeeDetailDto
             {
@@ -212,12 +524,15 @@ namespace payzen_backend.Controllers.Employees
                 SalaryComponents = salaryComponents,
                 TotalSalary = totalSalary,
 
-                // Numéro CNSS, AMO, CIMR A coder plus tartd dans le model employee
+                // Numéro CNSS, AMO, CIMR
                 CNSS = employee.CnssNumber,
                 AmoNumber = "74647",
                 CIMR = employee.CimrNumber,
 
-                CreatedAt = employee.CreatedAt.DateTime
+                CreatedAt = employee.CreatedAt.DateTime,
+
+                // ✅ HISTORIQUE FORMATÉ AVEC GESTION DES RÔLES
+                Events = formattedEvents
             };
 
             return Ok(result);
@@ -1371,21 +1686,18 @@ namespace payzen_backend.Controllers.Employees
         }
 
         /// <summary>
-        /// Mise à jour partielle d'un employé
+        /// Mise à jour partielle d'un employé (PATCH optimisé)
         /// </summary>
         [HttpPatch("{id}")]
-        // [HasPermission(EDIT_EMPLOYEE)]
-        public async Task<ActionResult<EmployeeReadDto>> PartialUpdate(int id, [FromBody] EmployeeUpdateDto dto)
+        //[HasPermission(EDIT_EMPLOYEE)]
+        public async Task<ActionResult<EmployeeReadDto>> PartialUpdate(int id, [FromBody] Dictionary<string, object> updates)
         {
-            Console.WriteLine("=== PATCH appelé depuis le frontend ===");
-            
-            if (dto == null)
-                return BadRequest(new { Message = "Données de mise à jour invalides" });
+            if (updates == null || updates.Count == 0)
+                return BadRequest(new { Message = "Aucune donnée de mise à jour fournie" });
 
             var userId = User.GetUserId();
-            Console.WriteLine($"User ID: {userId}");
 
-            // Récupérer l'utilisateur authentifié
+            // ===== CHARGEMENT UNIQUE DE TOUTES LES DONNÉES NÉCESSAIRES =====
             var currentUser = await _db.Users
                 .AsNoTracking()
                 .Include(u => u.Employee)
@@ -1394,104 +1706,697 @@ namespace payzen_backend.Controllers.Employees
             if (currentUser?.Employee == null)
                 return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
 
-            // Récupérer l'employé existant avec toutes ses relations
+            // Charger l'employé avec TOUTES les relations en une seule requête
             var employee = await _db.Employees
+                .Include(e => e.Status)
+                .Include(e => e.Gender)
+                .Include(e => e.Nationality)
+                .Include(e => e.EducationLevel)
+                .Include(e => e.MaritalStatus)
+                .Include(e => e.Departement)
+                .Include(e => e.Manager)
+                .Include(e => e.Company)
                 .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
+                    .ThenInclude(c => c.JobPosition)
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
+                    .ThenInclude(c => c.ContractType)
                 .Include(e => e.Salaries!.Where(s => s.DeletedAt == null && s.EndDate == null))
                 .Include(e => e.Addresses!.Where(a => a.DeletedAt == null))
+                    .ThenInclude(a => a.City)
                 .FirstOrDefaultAsync(e => e.Id == id && e.DeletedAt == null);
 
             if (employee == null)
                 return NotFound(new { Message = "Employé non trouvé" });
 
-            Console.WriteLine($"Employé trouvé: {employee.FirstName} {employee.LastName}");
-
-            // Vérifier les permissions
             if (employee.CompanyId != currentUser.Employee.CompanyId)
-            {
                 return Forbid();
+
+            var updateTime = DateTimeOffset.UtcNow;
+            bool hasChanges = false;
+
+            // ===== TRAITEMENT DES CHAMPS SIMPLES =====
+            foreach (var (key, value) in updates)
+            {
+                var normalizedValue = value is System.Text.Json.JsonElement jsonElement
+                    ? ConvertJsonElement(jsonElement, typeof(object))
+                    : value;
+
+                var strValue = normalizedValue?.ToString();
+
+                switch (key.ToLowerInvariant())
+                {
+                    case "firstname":
+                        if (strValue != null && strValue != employee.FirstName)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.FirstNameChanged,
+                                employee.FirstName, strValue, userId);
+                            employee.FirstName = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "lastname":
+                        if (strValue != null && strValue != employee.LastName)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.LastNameChanged,
+                                employee.LastName, strValue, userId);
+                            employee.LastName = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "cin":
+                        if (strValue != null && strValue != employee.CinNumber)
+                        {
+                            if (await _db.Employees.AnyAsync(e => e.CinNumber == strValue && e.Id != id && e.DeletedAt == null))
+                                return Conflict(new { Message = "Un employé avec ce numéro CIN existe déjà" });
+
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.CinNumberChanged,
+                                employee.CinNumber, strValue, userId);
+                            employee.CinNumber = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "dateofbirth":
+                    case "birthdate":
+                        if (normalizedValue != null && DateTime.TryParse(strValue, out var newDate) && newDate != employee.DateOfBirth)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.DateOfBirthChanged,
+                                employee.DateOfBirth.ToString("yyyy-MM-dd"),
+                                newDate.ToString("yyyy-MM-dd"), userId);
+                            employee.DateOfBirth = newDate;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "phone":
+                        if (!string.IsNullOrEmpty(strValue) && strValue != employee.Phone)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.PhoneChanged,
+                                employee.Phone, strValue, userId);
+                            employee.Phone = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "email":
+                    case "personalemail":
+                        if (strValue != null && strValue != employee.Email)
+                        {
+                            if (await _db.Employees.AnyAsync(e => e.Email == strValue && e.Id != id && e.DeletedAt == null))
+                                return Conflict(new { Message = "Un employé avec cet email existe déjà" });
+                            if (await _db.Users.AnyAsync(u => u.Email == strValue && u.EmployeeId != id && u.DeletedAt == null))
+                                return Conflict(new { Message = "Un utilisateur avec cet email existe déjà" });
+
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.EmailChanged,
+                                employee.Email, strValue, userId);
+                            employee.Email = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "cnssnumber":
+                        if (strValue != null && strValue != employee.CnssNumber)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.CnssNumberChanged,
+                                employee.CnssNumber, strValue, userId);
+                            employee.CnssNumber = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "cimrnumber":
+                        if (strValue != null && strValue != employee.CimrNumber)
+                        {
+                            await _eventLogService.LogSimpleEventAsync(id,
+                                EmployeeEventLogService.EventNames.CimrNumberChanged,
+                                employee.CimrNumber, strValue, userId);
+                            employee.CimrNumber = strValue;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    // ===== RELATIONS (IDs) =====
+                    case "departementid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var deptId) && deptId != employee.DepartementId)
+                        {
+                            var newDept = await _db.Departement.AsNoTracking()
+                                .FirstOrDefaultAsync(d => d.Id == deptId && d.DeletedAt == null);
+                            if (newDept == null)
+                                return NotFound(new { Message = "Département non trouvé" });
+                            if (newDept.CompanyId != employee.CompanyId)
+                                return BadRequest(new { Message = "Le département ne correspond pas à la société de l'employé" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.DepartmentChanged,
+                                employee.DepartementId, employee.Departement?.DepartementName,
+                                deptId, newDept.DepartementName, userId);
+                            employee.DepartementId = deptId;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "department": // Cas spécial : nom du département
+                        if (strValue != null)
+                        {
+                            var dept = await _db.Departement.AsNoTracking()
+                                .FirstOrDefaultAsync(d => d.DepartementName == strValue &&
+                                    d.CompanyId == employee.CompanyId && d.DeletedAt == null);
+                            if (dept != null && dept.Id != employee.DepartementId)
+                            {
+                                await _eventLogService.LogRelationEventAsync(id,
+                                    EmployeeEventLogService.EventNames.DepartmentChanged,
+                                    employee.DepartementId, employee.Departement?.DepartementName,
+                                    dept.Id, dept.DepartementName, userId);
+                                employee.DepartementId = dept.Id;
+                                hasChanges = true;
+                            }
+                        }
+                        break;
+
+                    case "managerid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var managerId))
+                        {
+                            if (managerId == id)
+                                return BadRequest(new { Message = "Un employé ne peut pas être son propre manager" });
+                            if (managerId != employee.ManagerId)
+                            {
+                                var newManager = await _db.Employees.AsNoTracking()
+                                    .FirstOrDefaultAsync(e => e.Id == managerId && e.DeletedAt == null);
+                                if (newManager == null)
+                                    return NotFound(new { Message = "Manager non trouvé" });
+
+                                await _eventLogService.LogRelationEventAsync(id,
+                                    EmployeeEventLogService.EventNames.ManagerChanged,
+                                    employee.ManagerId,
+                                    employee.Manager != null ? $"{employee.Manager.FirstName} {employee.Manager.LastName}" : null,
+                                    managerId, $"{newManager.FirstName} {newManager.LastName}", userId);
+                                employee.ManagerId = managerId;
+                                hasChanges = true;
+                            }
+                        }
+                        break;
+
+                    case "statusid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var statusId) && statusId != employee.StatusId)
+                        {
+                            var newStatus = await _db.Statuses.AsNoTracking()
+                                .FirstOrDefaultAsync(s => s.Id == statusId && s.DeletedAt == null);
+                            if (newStatus == null)
+                                return NotFound(new { Message = "Statut non trouvé" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.StatusChanged,
+                                employee.StatusId, employee.Status?.Name,
+                                statusId, newStatus.Name, userId);
+                            employee.StatusId = statusId;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "genderid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var genderId) && genderId != employee.GenderId)
+                        {
+                            var newGender = await _db.Genders.AsNoTracking()
+                                .FirstOrDefaultAsync(g => g.Id == genderId && g.DeletedAt == null);
+                            if (newGender == null)
+                                return NotFound(new { Message = "Genre non trouvé" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.GenderChanged,
+                                employee.GenderId, employee.Gender?.Name,
+                                genderId, newGender.Name, userId);
+                            employee.GenderId = genderId;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "nationalityid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var nationalityId) && nationalityId != employee.NationalityId)
+                        {
+                            var newNationality = await _db.Nationalities.AsNoTracking()
+                                .FirstOrDefaultAsync(n => n.Id == nationalityId && n.DeletedAt == null);
+                            if (newNationality == null)
+                                return NotFound(new { Message = "Nationalité non trouvée" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.NationalityChanged,
+                                employee.NationalityId, employee.Nationality?.Name,
+                                nationalityId, newNationality.Name, userId);
+                            employee.NationalityId = nationalityId;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "educationlevelid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var eduLevelId) && eduLevelId != employee.EducationLevelId)
+                        {
+                            var newEduLevel = await _db.EducationLevels.AsNoTracking()
+                                .FirstOrDefaultAsync(e => e.Id == eduLevelId && e.DeletedAt == null);
+                            if (newEduLevel == null)
+                                return NotFound(new { Message = "Niveau d'éducation non trouvé" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.EducationLevelChanged,
+                                employee.EducationLevelId, employee.EducationLevel?.Name,
+                                eduLevelId, newEduLevel.Name, userId);
+                            employee.EducationLevelId = eduLevelId;
+                            hasChanges = true;
+                        }
+                        break;
+
+                    case "maritalstatusid":
+                        if (normalizedValue != null && int.TryParse(strValue, out var maritalStatusId) && maritalStatusId != employee.MaritalStatusId)
+                        {
+                            var newMaritalStatus = await _db.MaritalStatuses.AsNoTracking()
+                                .FirstOrDefaultAsync(m => m.Id == maritalStatusId && m.DeletedAt == null);
+                            if (newMaritalStatus == null)
+                                return NotFound(new { Message = "Statut matrimonial non trouvé" });
+
+                            await _eventLogService.LogRelationEventAsync(id,
+                                EmployeeEventLogService.EventNames.MaritalStatusChanged,
+                                employee.MaritalStatusId, employee.MaritalStatus?.Name,
+                                maritalStatusId, newMaritalStatus.Name, userId);
+                            employee.MaritalStatusId = maritalStatusId;
+                            hasChanges = true;
+                        }
+                        break;
+                }
             }
 
-            // Récupérer le contrat actif
-            var activeContract = employee.Contracts?
+            // ===== GESTION DE L'ADRESSE (VERSION CORRIGÉE) =====
+            if (updates.ContainsKey("addressLine1") || updates.ContainsKey("addressLine2") ||
+                updates.ContainsKey("cityId") || updates.ContainsKey("zipCode"))
+            {
+                Console.WriteLine("=== DEBUG ADRESSE ===");
+
+                var activeAddress = employee.Addresses?.FirstOrDefault(a => a.DeletedAt == null);
+
+                if (activeAddress != null)
+                {
+                    bool addressModified = false;
+
+                    var oldAddressLine1 = activeAddress.AddressLine1;
+                    var oldAddressLine2 = activeAddress.AddressLine2;
+                    var oldZipCode = activeAddress.ZipCode;
+                    var oldCityId = activeAddress.CityId;
+                    var oldCityName = activeAddress.City?.CityName;
+
+                    // Mettre à jour uniquement les champs fournis
+                    if (updates.ContainsKey("addressLine1"))
+                    {
+                        var newAddressLine1 = updates["addressLine1"]?.ToString();
+                        if (!string.IsNullOrEmpty(newAddressLine1) && newAddressLine1 != activeAddress.AddressLine1)
+                        {
+                            Console.WriteLine($"Mise à jour AddressLine1: {activeAddress.AddressLine1} → {newAddressLine1}");
+                            activeAddress.AddressLine1 = newAddressLine1;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("addressLine2"))
+                    {
+                        var newAddressLine2 = updates["addressLine2"]?.ToString();
+                        if (newAddressLine2 != activeAddress.AddressLine2)
+                        {
+                            Console.WriteLine($"Mise à jour AddressLine2: {activeAddress.AddressLine2} → {newAddressLine2}");
+                            activeAddress.AddressLine2 = newAddressLine2;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("zipCode"))
+                    {
+                        var newZipCode = updates["zipCode"]?.ToString();
+                        if (!string.IsNullOrEmpty(newZipCode) && newZipCode != activeAddress.ZipCode)
+                        {
+                            Console.WriteLine($"Mise à jour ZipCode: {activeAddress.ZipCode} → {newZipCode}");
+                            activeAddress.ZipCode = newZipCode;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("cityId"))
+                    {
+                        if (int.TryParse(updates["cityId"]?.ToString(), out var newCityId) && newCityId != activeAddress.CityId)
+                        {
+                            var city = await _db.Cities.AsNoTracking()
+                                .FirstOrDefaultAsync(c => c.Id == newCityId && c.DeletedAt == null);
+
+                            if (city == null)
+                                return NotFound(new { Message = "Ville non trouvée" });
+
+                            Console.WriteLine($"Mise à jour CityId: {activeAddress.CityId} → {newCityId}");
+                            activeAddress.CityId = newCityId;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (addressModified)
+                    {
+                        activeAddress.ModifiedAt = updateTime;
+                        activeAddress.ModifiedBy = userId;
+
+                        // Ancienne valeur = données capturées AVANT modification
+                        var oldAddressFormatted = $"{oldAddressLine1}{(!string.IsNullOrEmpty(oldAddressLine2) ? $", {oldAddressLine2}" : "")}, {oldZipCode}, {oldCityName}";
+
+                        // Nouvelle valeur = données actuelles APRÈS modification
+                        var newCityName = await _db.Cities
+                            .AsNoTracking()
+                            .Where(c => c.Id == activeAddress.CityId)
+                            .Select(c => c.CityName)
+                            .FirstOrDefaultAsync();
+
+                        var newAddressFormatted = $"{activeAddress.AddressLine1}{(!string.IsNullOrEmpty(activeAddress.AddressLine2) ? $", {activeAddress.AddressLine2}" : "")}, {activeAddress.ZipCode}, {newCityName}";
+
+                        await _eventLogService.LogSimpleEventAsync(id,
+                            EmployeeEventLogService.EventNames.AddressUpdated,
+                            oldAddressFormatted,
+                            newAddressFormatted,
+                            userId);
+
+                        hasChanges = true;
+                        Console.WriteLine("✓ Adresse modifiée avec succès");
+                    }
+                }
+                else
+                {
+                    // Créer une nouvelle adresse uniquement si TOUS les champs requis sont présents
+                    var addressLine1 = updates.ContainsKey("addressLine1") ? updates["addressLine1"]?.ToString() : null;
+                    var cityId = updates.ContainsKey("cityId") && int.TryParse(updates["cityId"]?.ToString(), out var cId) ? (int?)cId : null;
+                    var zipCode = updates.ContainsKey("zipCode") ? updates["zipCode"]?.ToString() : null;
+
+                    if (!string.IsNullOrEmpty(addressLine1) && cityId.HasValue && !string.IsNullOrEmpty(zipCode))
+                    {
+                        var city = await _db.Cities.AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.Id == cityId && c.DeletedAt == null);
+
+                        if (city == null)
+                            return NotFound(new { Message = "Ville non trouvée" });
+
+                        var addressLine2 = updates.ContainsKey("addressLine2") ? updates["addressLine2"]?.ToString() : null;
+
+                        var newAddress = new EmployeeAddress
+                        {
+                            EmployeeId = id,
+                            CityId = cityId.Value,
+                            AddressLine1 = addressLine1,
+                            AddressLine2 = addressLine2,
+                            ZipCode = zipCode,
+                            CreatedAt = updateTime,
+                            CreatedBy = userId
+                        };
+
+                        _db.EmployeeAddresses.Add(newAddress);
+
+                        // Formatter la nouvelle adresse pour le log
+                        var newAddressFormatted = $"{addressLine1}{(!string.IsNullOrEmpty(addressLine2) ? $", {addressLine2}" : "")}, {zipCode}, {city.CityName}";
+
+                        await _eventLogService.LogSimpleEventAsync(id,
+                            EmployeeEventLogService.EventNames.AddressCreated,
+                            null,
+                            newAddressFormatted,
+                            userId);
+
+                        hasChanges = true;
+                        Console.WriteLine("✓ Nouvelle adresse créée");
+                    }
+                    else
+                    {
+                        Console.WriteLine("⚠ Création d'adresse impossible : données incomplètes");
+                    }
+                }
+
+                Console.WriteLine("=== FIN DEBUG ADRESSE ===");
+            }
+            // ===== GESTION DU SALAIRE =====
+            if (updates.ContainsKey("salary") || updates.ContainsKey("baseSalary"))
+            {
+                var salaryKey = updates.ContainsKey("salary") ? "salary" : "baseSalary";
+                if (decimal.TryParse(updates[salaryKey]?.ToString(), out var newSalary))
+                {
+                    var activeSalary = employee.Salaries?.FirstOrDefault(s => s.DeletedAt == null && s.EndDate == null);
+
+                    if (activeSalary == null || activeSalary.BaseSalary != newSalary)
+                    {
+                        var activeContract = employee.Contracts?.FirstOrDefault(c => c.DeletedAt == null && c.EndDate == null);
+                        if (activeContract == null)
+                            return BadRequest(new { Message = "Aucun contrat actif. Veuillez d'abord créer un contrat." });
+
+                        var effectiveDate = updates.ContainsKey("salaryEffectiveDate") && DateTime.TryParse(updates["salaryEffectiveDate"]?.ToString(), out var sed)
+                            ? sed
+                            : DateTime.UtcNow;
+
+                        // Fermer l'ancien salaire
+                        if (activeSalary != null)
+                        {
+                            activeSalary.EndDate = effectiveDate;
+                            activeSalary.ModifiedAt = updateTime;
+                            activeSalary.ModifiedBy = userId;
+                        }
+
+                        // Créer le nouveau salaire
+                        var newSalaryEntity = new EmployeeSalary
+                        {
+                            EmployeeId = id,
+                            ContractId = activeContract.Id,
+                            BaseSalary = newSalary,
+                            EffectiveDate = effectiveDate,
+                            EndDate = null,
+                            CreatedAt = updateTime,
+                            CreatedBy = userId
+                        };
+
+                        _db.EmployeeSalaries.Add(newSalaryEntity);
+                        await _db.SaveChangesAsync();
+
+                        await _eventLogService.LogSimpleEventAsync(id,
+                            EmployeeEventLogService.EventNames.SalaryUpdated,
+                            activeSalary?.BaseSalary.ToString("N2"),
+                            newSalary.ToString("N2"), userId);
+
+                        hasChanges = true;
+                    }
+                }
+            }
+
+            // ===== GESTION DE L'ADRESSE (VERSION FLEXIBLE) =====
+            if (updates.ContainsKey("addressLine1") || updates.ContainsKey("addressLine2") ||
+                updates.ContainsKey("cityId") || updates.ContainsKey("zipCode"))
+            {
+                Console.WriteLine("=== DEBUG ADRESSE ===");
+
+                var activeAddress = employee.Addresses?.FirstOrDefault(a => a.DeletedAt == null);
+
+                if (activeAddress != null)
+                {
+                    bool addressModified = false;
+
+                    // Mettre à jour uniquement les champs fournis
+                    if (updates.ContainsKey("addressLine1"))
+                    {
+                        var newAddressLine1 = updates["addressLine1"]?.ToString();
+                        if (!string.IsNullOrEmpty(newAddressLine1) && newAddressLine1 != activeAddress.AddressLine1)
+                        {
+                            Console.WriteLine($"Mise à jour AddressLine1: {activeAddress.AddressLine1} → {newAddressLine1}");
+                            activeAddress.AddressLine1 = newAddressLine1;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("addressLine2"))
+                    {
+                        var newAddressLine2 = updates["addressLine2"]?.ToString();
+                        if (newAddressLine2 != activeAddress.AddressLine2)
+                        {
+                            Console.WriteLine($"Mise à jour AddressLine2: {activeAddress.AddressLine2} → {newAddressLine2}");
+                            activeAddress.AddressLine2 = newAddressLine2;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("zipCode"))
+                    {
+                        var newZipCode = updates["zipCode"]?.ToString();
+                        if (!string.IsNullOrEmpty(newZipCode) && newZipCode != activeAddress.ZipCode)
+                        {
+                            Console.WriteLine($"Mise à jour ZipCode: {activeAddress.ZipCode} → {newZipCode}");
+                            activeAddress.ZipCode = newZipCode;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (updates.ContainsKey("cityId"))
+                    {
+                        if (int.TryParse(updates["cityId"]?.ToString(), out var newCityId) && newCityId != activeAddress.CityId)
+                        {
+                            var city = await _db.Cities.AsNoTracking()
+                                .FirstOrDefaultAsync(c => c.Id == newCityId && c.DeletedAt == null);
+
+                            if (city == null)
+                                return NotFound(new { Message = "Ville non trouvée" });
+
+                            Console.WriteLine($"Mise à jour CityId: {activeAddress.CityId} → {newCityId}");
+                            activeAddress.CityId = newCityId;
+                            addressModified = true;
+                        }
+                    }
+
+                    if (addressModified)
+                    {
+                        activeAddress.ModifiedAt = updateTime;
+                        activeAddress.ModifiedBy = userId;
+
+                        await _eventLogService.LogSimpleEventAsync(id,
+                            EmployeeEventLogService.EventNames.AddressUpdated,
+                            $"{activeAddress.AddressLine1}, {activeAddress.City?.CityName}",
+                            $"Adresse mise à jour",
+                            userId);
+
+                        hasChanges = true;
+                        Console.WriteLine("✓ Adresse modifiée avec succès");
+                    }
+                }
+                else
+                {
+                    // Créer une nouvelle adresse uniquement si TOUS les champs requis sont présents
+                    var addressLine1 = updates.ContainsKey("addressLine1") ? updates["addressLine1"]?.ToString() : null;
+                    var cityId = updates.ContainsKey("cityId") && int.TryParse(updates["cityId"]?.ToString(), out var cId) ? (int?)cId : null;
+                    var zipCode = updates.ContainsKey("zipCode") ? updates["zipCode"]?.ToString() : null;
+
+                    if (!string.IsNullOrEmpty(addressLine1) && cityId.HasValue && !string.IsNullOrEmpty(zipCode))
+                    {
+                        var city = await _db.Cities.AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.Id == cityId && c.DeletedAt == null);
+
+                        if (city == null)
+                            return NotFound(new { Message = "Ville non trouvée" });
+
+                        var newAddress = new EmployeeAddress
+                        {
+                            EmployeeId = id,
+                            CityId = cityId.Value,
+                            AddressLine1 = addressLine1,
+                            AddressLine2 = updates.ContainsKey("addressLine2") ? updates["addressLine2"]?.ToString() : null,
+                            ZipCode = zipCode,
+                            CreatedAt = updateTime,
+                            CreatedBy = userId
+                        };
+
+                        _db.EmployeeAddresses.Add(newAddress);
+
+                        await _eventLogService.LogSimpleEventAsync(id,
+                            EmployeeEventLogService.EventNames.AddressCreated,
+                            null,
+                            $"{addressLine1}, {city.CityName}",
+                            userId);
+
+                        hasChanges = true;
+                        Console.WriteLine("✓ Nouvelle adresse créée");
+                    }
+                    else
+                    {
+                        Console.WriteLine("⚠ Création d'adresse impossible : données incomplètes");
+                    }
+                }
+
+                Console.WriteLine("=== FIN DEBUG ADRESSE ===");
+            }
+
+            // ===== SAUVEGARDER SI CHANGEMENTS =====
+            if (hasChanges)
+            {
+                employee.ModifiedAt = updateTime;
+                employee.ModifiedBy = userId;
+                await _db.SaveChangesAsync();
+            }
+
+            // ===== RETOURNER L'EMPLOYÉ MIS À JOUR =====
+            var updatedEmployee = await _db.Employees
+                .AsNoTracking()
+                .Include(e => e.Company)
+                .Include(e => e.Manager)
+                .Include(e => e.Departement)
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
+                    .ThenInclude(c => c.JobPosition)
+                .Include(e => e.Contracts!.Where(c => c.DeletedAt == null && c.EndDate == null))
+                    .ThenInclude(c => c.ContractType)
+                .FirstAsync(e => e.Id == id);
+
+            var contract = updatedEmployee.Contracts?
                 .Where(c => c.DeletedAt == null && c.EndDate == null)
                 .OrderByDescending(c => c.StartDate)
                 .FirstOrDefault();
 
-            // Récupérer le salaire actif
-            var activeSalary = employee.Salaries?
-                .Where(s => s.DeletedAt == null && s.EndDate == null)
-                .OrderByDescending(s => s.EffectiveDate)
-                .FirstOrDefault();
-
-            // Récupérer l'adresse active
-            var activeAddress = employee.Addresses?
-                .Where(a => a.DeletedAt == null)
-                .OrderByDescending(a => a.CreatedAt)
-                .FirstOrDefault();
-
-            // Créer un DTO complet avec les valeurs actuelles
-            var completeDto = new EmployeeUpdateDto
+            return Ok(new EmployeeReadDto
             {
-                // Informations principales
-                FirstName = dto.FirstName ?? employee.FirstName,
-                LastName = dto.LastName ?? employee.LastName,
-                CinNumber = dto.CinNumber ?? employee.CinNumber,
-                DateOfBirth = dto.DateOfBirth ?? employee.DateOfBirth,
-                Phone = dto.Phone ?? employee.Phone,
-                Email = dto.Email ?? employee.Email,
-                DepartementId = dto.DepartementId ?? employee.DepartementId,
-                ManagerId = dto.ManagerId ?? employee.ManagerId,
-                StatusId = dto.StatusId ?? employee.StatusId,
-                GenderId = dto.GenderId ?? employee.GenderId,
-                NationalityId = dto.NationalityId ?? employee.NationalityId,
-                EducationLevelId = dto.EducationLevelId ?? employee.EducationLevelId,
-                MaritalStatusId = dto.MaritalStatusId ?? employee.MaritalStatusId,
-                CnssNumber = dto.CnssNumber ?? (string.IsNullOrEmpty(employee.CnssNumber) ? null : int.TryParse(employee.CnssNumber, out var cnss) ? cnss : null),
-                CimrNumber = dto.CimrNumber ?? (string.IsNullOrEmpty(employee.CimrNumber) ? null : int.TryParse(employee.CimrNumber, out var cimr) ? cimr : null),
-
-                // Informations de contrat
-                JobPositionId = dto.JobPositionId ?? activeContract?.JobPositionId,
-                ContractTypeId = dto.ContractTypeId ?? activeContract?.ContractTypeId,
-                ContractStartDate = dto.ContractStartDate ?? activeContract?.StartDate,
-
-                // Informations de salaire
-                Salary = dto.Salary ?? activeSalary?.BaseSalary,
-                SalaryEffectiveDate = dto.SalaryEffectiveDate ?? activeSalary?.EffectiveDate,
-
-                // Informations d'adresse
-                AddressLine1 = dto.AddressLine1 ?? activeAddress?.AddressLine1,
-                AddressLine2 = dto.AddressLine2 ?? activeAddress?.AddressLine2,
-                ZipCode = dto.ZipCode ?? activeAddress?.ZipCode,
-                CityId = dto.CityId ?? activeAddress?.CityId
-            };
-
-    Console.WriteLine("=== Données reçues ===");
-    Console.WriteLine($"FirstName: {dto.FirstName}");
-    Console.WriteLine($"LastName: {dto.LastName}");
-    Console.WriteLine($"Email: {dto.Email}");
-    Console.WriteLine($"Phone: {dto.Phone}");
-    Console.WriteLine("====================");
-
-    // Valider le modèle
-    if (!TryValidateModel(completeDto))
-    {
-        Console.WriteLine("Validation échouée:");
-        foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-        {
-            Console.WriteLine($"- {error.ErrorMessage}");
+                Id = updatedEmployee.Id,
+                FirstName = updatedEmployee.FirstName,
+                LastName = updatedEmployee.LastName,
+                CinNumber = updatedEmployee.CinNumber,
+                DateOfBirth = updatedEmployee.DateOfBirth,
+                Phone = updatedEmployee.Phone,
+                Email = updatedEmployee.Email,
+                CompanyId = updatedEmployee.CompanyId,
+                CompanyName = updatedEmployee.Company?.CompanyName ?? "",
+                DepartementId = updatedEmployee.DepartementId,
+                DepartementName = updatedEmployee.Departement?.DepartementName,
+                ManagerId = updatedEmployee.ManagerId,
+                ManagerName = updatedEmployee.Manager != null
+                    ? $"{updatedEmployee.Manager.FirstName} {updatedEmployee.Manager.LastName}"
+                    : null,
+                StatusId = updatedEmployee.StatusId,
+                GenderId = updatedEmployee.GenderId,
+                EducationLevelId = updatedEmployee.EducationLevelId,
+                MaritalStatusId = updatedEmployee.MaritalStatusId,
+                JobPostionName = contract?.JobPosition?.Name,
+                CreatedAt = updatedEmployee.CreatedAt.DateTime
+            });
         }
-        return BadRequest(ModelState);
-    }
-
-    // Appeler la méthode de mise à jour complète avec le DTO fusionné
-    var result = await Update(id, completeDto);
-    
-    Console.WriteLine("=== Mise à jour terminée ===");
-    
-    return result;
-}
-
+        
+        /// <summary>
+        /// Convertit un JsonElement en type .NET approprié
+        /// </summary>
+        private static object? ConvertJsonElement(System.Text.Json.JsonElement element, Type targetType)
+        {
+            switch (element.ValueKind)
+            {
+                case System.Text.Json.JsonValueKind.Null:
+                    return null;
+                case System.Text.Json.JsonValueKind.String:
+                    var stringValue = element.GetString();
+                    if (targetType == typeof(DateTime))
+                        return DateTime.Parse(stringValue!);
+                    if (targetType == typeof(DateTimeOffset))
+                        return DateTimeOffset.Parse(stringValue!);
+                    return stringValue;
+                case System.Text.Json.JsonValueKind.Number:
+                    if (targetType == typeof(int))
+                        return element.GetInt32();
+                    if (targetType == typeof(decimal))
+                        return element.GetDecimal();
+                    if (targetType == typeof(double))
+                        return element.GetDouble();
+                    if (targetType == typeof(long))
+                        return element.GetInt64();
+                    return element.GetDecimal();
+                case System.Text.Json.JsonValueKind.True:
+                    return true;
+                case System.Text.Json.JsonValueKind.False:
+                    return false;
+                default:
+                    return element.ToString();
+            }
+        }
+        
         /// <summary>
         /// Supprime un employé (soft delete)
         /// </summary>

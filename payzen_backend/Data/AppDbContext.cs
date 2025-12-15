@@ -112,7 +112,7 @@ namespace payzen_backend.Data
                 entity.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique(true).HasFilter("[DeletedAt] IS NULL");
 
                 entity.HasOne(ur => ur.User)
-                    .WithMany()
+                    .WithMany(u => u.UsersRoles)
                     .HasForeignKey(ur => ur.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
