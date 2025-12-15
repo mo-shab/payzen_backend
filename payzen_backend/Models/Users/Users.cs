@@ -9,6 +9,7 @@ namespace payzen_backend.Models.Users
         public int? EmployeeId { get; set; }
         public required string Username { get; set; }
         public required string Email { get; set; }
+        public string? EmailPersonal { get; set; }
         public required string PasswordHash { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

@@ -57,6 +57,7 @@ namespace payzen_backend.Data
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
                 entity.HasIndex(u => u.Email).IsUnique(false);
+                entity.HasIndex(u => u.EmailPersonal).IsUnique(false).HasFilter("[DeletedAt] IS NULL AND [EmailPersonal] IS NOT NULL");
                 entity.HasIndex(u => u.Username).IsUnique(true).HasFilter("[DeletedAt] IS NULL");
                 
                 entity.Property(u => u.Username).IsRequired().HasMaxLength(50);
@@ -311,19 +312,19 @@ namespace payzen_backend.Data
             {
                 entity.ToTable("Employee");
                 entity.HasKey(e => e.Id);
-                
+
                 entity.Property(e => e.FirstName).HasColumnName("first_name").HasMaxLength(500).IsRequired();
                 entity.Property(e => e.LastName).HasColumnName("last_name").HasMaxLength(500).IsRequired();
                 entity.Property(e => e.CinNumber).HasColumnName("cin_number").HasMaxLength(500).IsRequired();
                 entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth").IsRequired();
                 entity.Property(e => e.Phone).HasColumnName("phone").IsRequired();
                 entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.PersonalEmail).HasColumnName("personal_email").HasMaxLength(500);
                 entity.Property(e => e.CompanyId).HasColumnName("company_id").IsRequired();
                 entity.Property(e => e.ManagerId).HasColumnName("manager_id");
                 entity.Property(e => e.DepartementId).HasColumnName("departement_id");
                 entity.Property(e => e.StatusId).HasColumnName("status_id");
                 entity.Property(e => e.GenderId).HasColumnName("gender_id");
-                //entity.Property(e => e.NationalityId).HasColumnName("nationality_id");
                 entity.Property(e => e.EducationLevelId).HasColumnName("education_level_id");
                 entity.Property(e => e.MaritalStatusId).HasColumnName("marital_status_id");
                 entity.Property(e => e.CnssNumber).HasColumnName("cnss_number");
@@ -337,6 +338,7 @@ namespace payzen_backend.Data
 
                 entity.HasIndex(e => e.CinNumber).IsUnique().HasFilter("[deleted_at] IS NULL");
                 entity.HasIndex(e => e.Email).IsUnique().HasFilter("[deleted_at] IS NULL");
+                entity.HasIndex(e => e.PersonalEmail).HasFilter("[deleted_at] IS NULL AND [personal_email] IS NOT NULL");
 
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Employees)
@@ -362,11 +364,6 @@ namespace payzen_backend.Data
                     .WithMany(g => g.Employees)
                     .HasForeignKey(e => e.GenderId)
                     .OnDelete(DeleteBehavior.Restrict);
-
-                //entity.HasOne(e => e.Nationality)
-                //    .WithMany(c => c.Employees)
-                //    .HasForeignKey(e => e.NationalityId)
-                //    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.EducationLevel)
                     .WithMany(el => el.Employees)

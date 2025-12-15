@@ -28,9 +28,9 @@ namespace payzen_backend.Models.Employee.Dtos
         public decimal TotalSalary { get; set; }
         
         // Cotisations
-        public string? CNSS { get; set; }
+        public string? cnss { get; set; }
         public string? AmoNumber { get; set; }
-        public string? CIMR { get; set; }
+        public string? cimr { get; set; }
         // Evenements
         public List<dynamic> Events { get; set; } = new();
 

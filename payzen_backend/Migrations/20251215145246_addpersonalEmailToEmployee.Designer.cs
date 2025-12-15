@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using payzen_backend.Data;
 
@@ -11,9 +12,11 @@ using payzen_backend.Data;
 namespace payzen_backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215145246_addpersonalEmailToEmployee")]
+    partial class addpersonalEmailToEmployee
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1319,9 +1322,6 @@ namespace payzen_backend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("EmailPersonal")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
@@ -1346,9 +1346,6 @@ namespace payzen_backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email");
-
-                    b.HasIndex("EmailPersonal")
-                        .HasFilter("[DeletedAt] IS NULL AND [EmailPersonal] IS NOT NULL");
 
                     b.HasIndex("EmployeeId");
 

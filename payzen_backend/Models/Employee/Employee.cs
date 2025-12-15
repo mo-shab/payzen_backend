@@ -12,6 +12,7 @@ namespace payzen_backend.Models.Employee
         public required DateTime DateOfBirth { get; set; }
         public required string Phone { get; set; }
         public required string Email { get; set; }
+        public string? PersonalEmail { get; set; }
         public int CompanyId { get; set; }
         public int? ManagerId { get; set; }
         public int? DepartementId { get; set; }
