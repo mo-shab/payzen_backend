@@ -199,25 +199,114 @@ namespace payzen_backend.Data
                 entity.ToTable("Company");
                 entity.HasKey(c => c.Id);
                 
-                entity.Property(c => c.CompanyName).HasColumnName("company_name").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.CompanyAddress).HasColumnName("company_address").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.CityId).HasColumnName("city_id");
-                entity.Property(c => c.CountryId).HasColumnName("country_id");
-                entity.Property(c => c.IceNumber).HasColumnName("ice_number").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.CnssNumber).HasColumnName("cnss_number").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.IfNumber).HasColumnName("if_number").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.RcNumber).HasColumnName("rc_number").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.RibNumber).HasColumnName("rib_number").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.PhoneNumber).HasColumnName("phone_number").IsRequired();
-                entity.Property(c => c.Email).HasColumnName("email").HasMaxLength(500).IsRequired();
-                entity.Property(c => c.ManagedByCompanyId).HasColumnName("managedby_company_id");
-                entity.Property(c => c.IsCabinetExpert).HasColumnName("is_cabinet_expert").HasDefaultValue(false);
+                // ========== INFORMATIONS DE BASE (Obligatoires à la création) ==========
+                
+                entity.Property(c => c.CompanyName)
+                    .HasColumnName("company_name")
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(c => c.Email)
+                    .HasColumnName("email")
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(c => c.PhoneNumber)
+                    .HasColumnName("phone_number")
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(c => c.CountryPhoneCode)
+                    .HasColumnName("country_phone_code")
+                    .HasMaxLength(10);
+
+                entity.Property(c => c.CompanyAddress)
+                    .HasColumnName("company_address")
+                    .HasMaxLength(1000)
+                    .IsRequired();
+
+                entity.Property(c => c.CityId)
+                    .HasColumnName("city_id")
+                    .IsRequired();
+
+                entity.Property(c => c.CountryId)
+                    .HasColumnName("country_id")
+                    .IsRequired();
+
+                entity.Property(c => c.CnssNumber)
+                    .HasColumnName("cnss_number")
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(c => c.IsCabinetExpert)
+                    .HasColumnName("is_cabinet_expert")
+                    .HasDefaultValue(false);
+
+                // ========== INFORMATIONS LÉGALES & FISCALES (Optionnelles) ==========
+
+                entity.Property(c => c.IceNumber)
+                    .HasColumnName("ice_number")
+                    .HasMaxLength(100); // ⚠️ RETIRÉ .IsRequired()
+
+                entity.Property(c => c.IfNumber)
+                    .HasColumnName("if_number")
+                    .HasMaxLength(100); // ⚠️ RETIRÉ .IsRequired()
+
+                entity.Property(c => c.RcNumber)
+                    .HasColumnName("rc_number")
+                    .HasMaxLength(100); // ⚠️ RETIRÉ .IsRequired()
+
+                entity.Property(c => c.RibNumber)
+                    .HasColumnName("rib_number")
+                    .HasMaxLength(100); // ⚠️ RETIRÉ .IsRequired()
+
+                entity.Property(c => c.LegalForm)
+                    .HasColumnName("legal_form")
+                    .HasMaxLength(50);
+
+                entity.Property(c => c.FoundingDate)
+                    .HasColumnName("founding_date")
+                    .HasColumnType("date");
+
+                // ========== PARAMÉTRAGE PAIE (Optionnels avant 1ère paie) ==========
+
+                entity.Property(c => c.Currency)
+                    .HasColumnName("currency")
+                    .HasMaxLength(10)
+                    .HasDefaultValue("MAD");
+
+                entity.Property(c => c.PayrollPeriodicity)
+                    .HasColumnName("payroll_periodicity")
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Mensuelle");
+
+                entity.Property(c => c.FiscalYearStartMonth)
+                    .HasColumnName("fiscal_year_start_month")
+                    .HasDefaultValue(1);
+
+                entity.Property(c => c.BusinessSector)
+                    .HasColumnName("business_sector")
+                    .HasMaxLength(200);
+
+                entity.Property(c => c.PaymentMethod)
+                    .HasColumnName("payment_method")
+                    .HasMaxLength(100);
+
+                // ========== GESTION MULTI-ENTREPRISES ==========
+
+                entity.Property(c => c.ManagedByCompanyId)
+                    .HasColumnName("managedby_company_id");
+
+                // ========== CHAMPS D'AUDIT ==========
+
                 entity.Property(c => c.CreatedAt).HasColumnName("created_at");
                 entity.Property(c => c.CreatedBy).HasColumnName("created_by");
                 entity.Property(c => c.ModifiedAt).HasColumnName("modified_at");
                 entity.Property(c => c.ModifiedBy).HasColumnName("modified_by");
                 entity.Property(c => c.DeletedAt).HasColumnName("deleted_at");
                 entity.Property(c => c.DeletedBy).HasColumnName("deleted_by");
+
+                // ========== RELATIONS ==========
 
                 entity.HasOne(c => c.ManagedByCompany)
                     .WithMany(c => c.ManagedCompanies)

@@ -99,6 +99,7 @@ namespace payzen_backend.Services
             public const string ContractTerminated = "Contract_Terminated";
             public const string JobPositionChanged = "JobPosition_Changed";
             public const string ContractTypeChanged = "ContractType_Changed";
+            public const string ContractStartDateChanged = "CONTRACT_START_DATE_CHANGED";
 
             // Salaire
             public const string SalaryCreated = "Salary_Created";

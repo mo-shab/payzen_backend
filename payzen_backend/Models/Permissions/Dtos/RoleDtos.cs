@@ -7,7 +7,7 @@ namespace payzen_backend.Models.Permissions.Dtos
     public class RoleCreateDto
     {
         [Required(ErrorMessage = "Le nom du rôle est requis")]
-        [StringLength(50, MinimumLength = 3, ErrorMessage = "Le nom du rôle doit contenir entre 3 et 50 caractères")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Le nom du rôle doit contenir entre 2 et 50 caractères")]
         public required string Name { get; set; }
 
         [Required(ErrorMessage = "La description est requise")]
@@ -29,7 +29,7 @@ namespace payzen_backend.Models.Permissions.Dtos
     // FLEXIBILITÉ: Permet de modifier Name ou Description indépendamment
     public class RoleUpdateDto
     {
-        [StringLength(50, MinimumLength = 3, ErrorMessage = "Le nom du rôle doit contenir entre 3 et 50 caractères")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Le nom du rôle doit contenir entre 2 et 50 caractères")]
         public string? Name { get; set; }
 
         [StringLength(500, MinimumLength = 10, ErrorMessage = "La description doit contenir entre 10 et 500 caractères")]

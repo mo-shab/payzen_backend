@@ -120,6 +120,8 @@ namespace payzen_backend.Controllers.Auth
                 .Where(r => r.Id == id && r.DeletedAt == null)
                 .FirstOrDefaultAsync();
 
+            Console.WriteLine($"Role is : {role}");
+
             if (role == null)
                 return NotFound(new { Message = "Rôle non trouvé" });
 
@@ -127,6 +129,7 @@ namespace payzen_backend.Controllers.Auth
             {
                 if (await _db.Roles.AnyAsync(r => r.Name == dto.Name && r.Id != id && r.DeletedAt == null))
                 {
+                    Console.WriteLine("Conflict detected");
                     return Conflict(new { Message = "Un rôle avec ce nom existe déjà" });
                 }
                 role.Name = dto.Name;

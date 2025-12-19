@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using payzen_backend.Authorization;
@@ -7,14 +8,12 @@ using payzen_backend.Extensions;
 using payzen_backend.Models.Dashboard.Dtos;
 using payzen_backend.Models.Employee;
 using payzen_backend.Models.Employee.Dtos;
-using payzen_backend.Models.Users;
 using payzen_backend.Models.Event;
-using payzen_backend.Services;
 using payzen_backend.Models.Permissions;
 using payzen_backend.Models.Permissions.Dtos;
-using Microsoft.AspNetCore.JsonPatch;
-
-
+using payzen_backend.Models.Users;
+using payzen_backend.Services;
+using System.Globalization;
 using static payzen_backend.Models.Permissions.PermissionsConstants;
 
 namespace payzen_backend.Controllers.Employees
@@ -1591,7 +1590,10 @@ namespace payzen_backend.Controllers.Employees
                         .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.DeletedAt == null);
 
                     if (newCity == null)
+                    {
+                        Console.WriteLine("  ❌ Ville non trouvée");
                         return NotFound(new { Message = "Ville non trouvée" });
+                    }
 
                     string? oldAddressValue = null;
                     if (activeAddress != null)
@@ -1630,7 +1632,17 @@ namespace payzen_backend.Controllers.Employees
                     );
 
                     hasChanges = true;
+                    Console.WriteLine("  ✓ Adresse modifiée avec succès");
                 }
+                else
+                {
+                    Console.WriteLine("  ⊘ Aucune modification d'adresse");
+                }
+            }
+            else if (dto.CityId.HasValue || !string.IsNullOrEmpty(dto.AddressLine1) || !string.IsNullOrEmpty(dto.ZipCode))
+            {
+                // Cas où on essaie de supprimer une adresse en laissant des champs vides
+                return BadRequest(new { Message = "Impossible de supprimer l'adresse en laissant des champs vides" });
             }
 
             // Mettre à jour ModifiedAt et ModifiedBy si des changements ont été effectués
@@ -1672,7 +1684,9 @@ namespace payzen_backend.Controllers.Employees
                 DepartementId = updatedEmployee.DepartementId,
                 DepartementName = updatedEmployee.Departement?.DepartementName,
                 ManagerId = updatedEmployee.ManagerId,
-                ManagerName = updatedEmployee.Manager != null ? $"{updatedEmployee.Manager.FirstName} {updatedEmployee.Manager.LastName}" : null,
+                ManagerName = updatedEmployee.Manager != null
+                    ? $"{updatedEmployee.Manager.FirstName} {updatedEmployee.Manager.LastName}"
+                    : null,
                 StatusId = updatedEmployee.StatusId,
                 GenderId = updatedEmployee.GenderId,
                 EducationLevelId = updatedEmployee.EducationLevelId,
@@ -1682,6 +1696,179 @@ namespace payzen_backend.Controllers.Employees
             };
 
             return Ok(readDto);
+        }
+
+        /// <summary>
+        /// Récupère toutes les données nécessaires pour le formulaire de création/modification d'employé
+        /// </summary>
+        /// <param name="companyId">ID de l'entreprise (optionnel, si non fourni utilise l'entreprise de l'utilisateur connecté)</param>
+        [HttpGet("form-data")]
+        public async Task<ActionResult<EmployeeFormDataDto>> GetFormData([FromQuery] int? companyId = null)
+        {
+            // Récupérer l'utilisateur authentifié
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { Message = "Utilisateur non authentifié" });
+            }
+
+            var user = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
+
+            if (user?.Employee == null)
+            {
+                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
+            }
+
+            // Utiliser le companyId fourni ou celui de l'utilisateur
+            var targetCompanyId = companyId ?? user.Employee.CompanyId;
+
+            // Vérifier que l'utilisateur a accès à cette entreprise
+            if (companyId.HasValue && companyId.Value != user.Employee.CompanyId)
+            {
+                // Vérifier si l'utilisateur a les permissions pour accéder à d'autres entreprises
+                // Pour l'instant, on restreint à sa propre entreprise
+                return Forbid();
+            }
+
+            var formData = new EmployeeFormDataDto();
+
+            // 1. Récupérer les statuts
+            formData.Statuses = await _db.Statuses
+                .Where(s => s.DeletedAt == null)
+                .Select(s => new StatusDto
+                {
+                    Id = s.Id,
+                    Name = s.Name
+                })
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            // 2. Récupérer les genres
+            formData.Genders = await _db.Genders
+                .Where(g => g.DeletedAt == null)
+                .Select(g => new GenderDto
+                {
+                    Id = g.Id,
+                    Name = g.Name
+                })
+                .OrderBy(g => g.Name)
+                .ToListAsync();
+
+            // 3. Récupérer les niveaux d'éducation
+            formData.EducationLevels = await _db.EducationLevels
+                .Where(e => e.DeletedAt == null)
+                .Select(e => new EducationLevelDto
+                {
+                    Id = e.Id,
+                    Name = e.Name
+                })
+                .OrderBy(e => e.Name)
+                .ToListAsync();
+
+            // 4. Récupérer les statuts matrimoniaux
+            formData.MaritalStatuses = await _db.MaritalStatuses
+                .Where(m => m.DeletedAt == null)
+                .Select(m => new MaritalStatusDto
+                {
+                    Id = m.Id,
+                    Name = m.Name
+                })
+                .OrderBy(m => m.Name)
+                .ToListAsync();
+
+            // 5. Récupérer les pays
+            formData.Countries = await _db.Countries
+                .Where(c => c.DeletedAt == null)
+                .Select(c => new CountryDto
+                {
+                    Id = c.Id,
+                    CountryName = c.CountryName,
+                    CountryPhoneCode = c.CountryPhoneCode
+                })
+                .OrderBy(c => c.CountryName)
+                .ToListAsync();
+
+            // 6. Récupérer les villes
+            formData.Cities = await _db.Cities
+                .Where(c => c.DeletedAt == null)
+                .Include(c => c.Country)
+                .Select(c => new CityDto
+                {
+                    Id = c.Id,
+                    CityName = c.CityName,
+                    CountryId = c.CountryId,
+                    CountryName = c.Country != null ? c.Country.CountryName : null
+                })
+                .OrderBy(c => c.CountryName)
+                .ThenBy(c => c.CityName)
+                .ToListAsync();
+
+            // 7. Récupérer les départements de l'entreprise
+            formData.Departements = await _db.Departement
+                .Where(d => d.DeletedAt == null && d.CompanyId == targetCompanyId)
+                .Select(d => new DepartementDto
+                {
+                    Id = d.Id,
+                    DepartementName = d.DepartementName,
+                    CompanyId = d.CompanyId
+                })
+                .OrderBy(d => d.DepartementName)
+                .ToListAsync();
+
+            // 8. Récupérer les postes de l'entreprise
+            formData.JobPositions = await _db.JobPositions
+                .Where(j => j.DeletedAt == null && j.CompanyId == targetCompanyId)
+                .Select(j => new JobPositionDto
+                {
+                    Id = j.Id,
+                    Name = j.Name,
+                    CompanyId = j.CompanyId
+                })
+                .OrderBy(j => j.Name)
+                .ToListAsync();
+
+            // 9. Récupérer les types de contrat de l'entreprise
+            formData.ContractTypes = await _db.ContractTypes
+                .Where(c => c.DeletedAt == null && c.CompanyId == targetCompanyId)
+                .Select(c => new ContractTypeDto
+                {
+                    Id = c.Id,
+                    ContractTypeName = c.ContractTypeName,
+                    CompanyId = c.CompanyId
+                })
+                .OrderBy(c => c.ContractTypeName)
+                .ToListAsync();
+
+            // 10. Récupérer les managers potentiels (employés actifs de l'entreprise)
+            formData.PotentialManagers = await _db.Employees
+                .Where(e => e.DeletedAt == null && e.CompanyId == targetCompanyId)
+                .Include(e => e.Departement)
+                .Select(e => new EmployeeDto
+                {
+                    Id = e.Id,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    FullName = e.FirstName + " " + e.LastName,
+                    DepartementName = e.Departement != null ? e.Departement.DepartementName : null
+                })
+                .OrderBy(e => e.LastName)
+                .ThenBy(e => e.FirstName)
+                .ToListAsync();
+            // 11. Récupérer les nationalités
+            formData.Nationalities = await _db.Nationalities
+                .Where(n => n.DeletedAt == null)
+                .Select(n => new NationalityDto
+                {
+                    Id = n.Id,
+                    Name = n.Name
+                })
+                .OrderBy(n => n.Name)
+                .ToListAsync();
+
+            return Ok(formData);
         }
 
         /// <summary>
@@ -1848,7 +2035,6 @@ namespace payzen_backend.Controllers.Employees
                         }
                         break;
 
-                    case "dateofbirth":
                     case "birthdate":
                         Console.WriteLine($"  DateOfBirth actuelle: {employee.DateOfBirth:yyyy-MM-dd}");
                         if (normalizedValue != null && DateTime.TryParse(strValue, out var newDate) && newDate != employee.DateOfBirth)
@@ -2017,42 +2203,65 @@ namespace payzen_backend.Controllers.Employees
                         }
                         break;
 
-                    case "managerid":
-                        Console.WriteLine($"  ManagerId actuel: {employee.ManagerId?.ToString() ?? "null"}");
-                        if (normalizedValue != null && int.TryParse(strValue, out var managerId))
+                    case "manager":
                         {
-                            if (managerId == id)
-                            {
-                                Console.WriteLine("  ❌ Un employé ne peut pas être son propre manager");
-                                return BadRequest(new { Message = "Un employé ne peut pas être son propre manager" });
-                            }
-                            if (managerId != employee.ManagerId)
-                            {
-                                Console.WriteLine($"  Recherche du manager {managerId}...");
-                                var newManager = await _db.Employees.AsNoTracking()
-                                    .FirstOrDefaultAsync(e => e.Id == managerId && e.DeletedAt == null);
-                                if (newManager == null)
-                                {
-                                    Console.WriteLine("  ❌ Manager non trouvé");
-                                    return NotFound(new { Message = "Manager non trouvé" });
-                                }
+                            if (string.IsNullOrWhiteSpace(strValue))
+                                return BadRequest(new { Message = "Nom du manager requis" });
 
-                                Console.WriteLine($"  → Mise à jour: {employee.Manager?.FirstName ?? "null"} → {newManager.FirstName} {newManager.LastName}");
-                                await _eventLogService.LogRelationEventAsync(id,
-                                    EmployeeEventLogService.EventNames.ManagerChanged,
-                                    employee.ManagerId,
-                                    employee.Manager != null ? $"{employee.Manager.FirstName} {employee.Manager.LastName}" : null,
-                                    managerId, $"{newManager.FirstName} {newManager.LastName}", userId);
-                                employee.ManagerId = managerId;
-                                hasChanges = true;
-                                Console.WriteLine("  ✓ ManagerId modifié");
-                            }
-                            else
+                            var normalizedName = strValue.Trim().ToLower();
+
+                            Console.WriteLine($"  Recherche du manager par nom: {normalizedName}");
+
+                            var managers = await _db.Employees
+                                .AsNoTracking()
+                                .Where(e => e.DeletedAt == null &&
+                                    (e.FirstName + " " + e.LastName).ToLower() == normalizedName)
+                                .Select(e => new
+                                {
+                                    e.Id,
+                                    FullName = e.FirstName + " " + e.LastName
+                                })
+                                .ToListAsync();
+
+                            if (!managers.Any())
+                                return NotFound(new { Message = "Manager non trouvé" });
+
+                            if (managers.Count > 1)
+                                return Conflict(new
+                                {
+                                    Message = "Nom du manager ambigu",
+                                    Candidates = managers.Select(m => new { m.Id, m.FullName })
+                                });
+
+                            var newManagerId = managers[0].Id;
+
+                            if (newManagerId == id)
+                                return BadRequest(new { Message = "Un employé ne peut pas être son propre manager" });
+
+                            if (newManagerId == employee.ManagerId)
                             {
                                 Console.WriteLine("  ⊘ Pas de changement");
+                                break;
                             }
+
+                            await _eventLogService.LogRelationEventAsync(
+                                id,
+                                EmployeeEventLogService.EventNames.ManagerChanged,
+                                employee.ManagerId,
+                                employee.Manager != null
+                                    ? $"{employee.Manager.FirstName} {employee.Manager.LastName}"
+                                    : null,
+                                newManagerId,
+                                managers[0].FullName,
+                                userId
+                            );
+
+                            employee.ManagerId = newManagerId;
+                            hasChanges = true;
+
+                            Console.WriteLine($"  ✓ Manager mis à jour → {managers[0].FullName}");
+                            break;
                         }
-                        break;
 
                     case "statusid":
                         Console.WriteLine($"  StatusId actuel: {employee.StatusId?.ToString() ?? "null"}");
@@ -2194,95 +2403,169 @@ namespace payzen_backend.Controllers.Employees
                         }
                         break;
 
-                    case "position": // Cas spécial : nom du poste
-                        Console.WriteLine($"  Position (par nom): {strValue}");
-                        if (strValue != null)
+                    case "position":
                         {
-                            Console.WriteLine($"  Recherche du poste '{strValue}'...");
+                            if (string.IsNullOrWhiteSpace(strValue))
+                                return BadRequest(new { Message = "Nom du poste requis" });
 
-                            // Récupérer le contrat actif
-                            var currentContract = employee.Contracts?.FirstOrDefault(c => c.DeletedAt == null && c.EndDate == null);
+                            var normalizedPosition = strValue.Trim().ToLowerInvariant();
 
-                            if (currentContract != null)
+                            Console.WriteLine($"  Recherche du poste '{normalizedPosition}'");
+
+                            var jobPositions = await _db.JobPositions
+                                .AsNoTracking()
+                                .Where(jp =>
+                                    jp.CompanyId == employee.CompanyId &&
+                                    jp.DeletedAt == null &&
+                                    jp.Name.ToLower() == normalizedPosition)
+                                .Select(jp => new
+                                {
+                                    jp.Id,
+                                    jp.Name
+                                })
+                                .ToListAsync();
+
+                            if (!jobPositions.Any())
+                                return NotFound(new { Message = "Poste non trouvé pour cette entreprise" });
+
+                            if (jobPositions.Count > 1)
+                                return Conflict(new
+                                {
+                                    Message = "Nom de poste ambigu",
+                                    Candidates = jobPositions
+                                });
+
+                            var newJobPosition = jobPositions[0];
+
+                            // Charger le contrat actif en base (fiable)
+                            var currentContract = await _db.EmployeeContracts
+                                .Include(c => c.JobPosition)
+                                .Include(c => c.ContractType)
+                                .FirstOrDefaultAsync(c =>
+                                    c.EmployeeId == id &&
+                                    c.DeletedAt == null &&
+                                    c.EndDate == null);
+
+                            if (currentContract == null)
+                                return Conflict(new { Message = "Aucun contrat actif trouvé" });
+
+                            if (currentContract.JobPositionId == newJobPosition.Id)
                             {
-                                var currentJobPosition = currentContract.JobPosition;
-
-                                // Chercher le nouveau poste
-                                var newJobPosition = await _db.JobPositions.AsNoTracking()
-                                    .FirstOrDefaultAsync(jp => jp.Name == strValue &&
-                                        jp.CompanyId == employee.CompanyId && jp.DeletedAt == null);
-
-                                if (newJobPosition != null && newJobPosition.Id != currentContract.JobPositionId)
-                                {
-                                    Console.WriteLine($"  → Mise à jour: {currentJobPosition?.Name ?? "null"} → {newJobPosition.Name}");
-
-                                    // Fermer l'ancien contrat
-                                    currentContract.EndDate = DateTime.UtcNow;
-                                    currentContract.ModifiedAt = updateTime;
-                                    currentContract.ModifiedBy = userId;
-
-                                    // Logger la fin de contrat
-                                    await _eventLogService.LogSimpleEventAsync(
-                                        employeeId: id,
-                                        eventName: EmployeeEventLogService.EventNames.ContractTerminated,
-                                        oldValue: $"{currentJobPosition?.Name} - {currentContract.ContractType?.ContractTypeName}",
-                                        newValue: DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                                        createdBy: userId
-                                    );
-
-                                    // Créer le nouveau contrat
-                                    var newContract = new EmployeeContract
-                                    {
-                                        EmployeeId = id,
-                                        CompanyId = employee.CompanyId,
-                                        JobPositionId = newJobPosition.Id,
-                                        ContractTypeId = currentContract.ContractTypeId,
-                                        StartDate = DateTime.UtcNow,
-                                        EndDate = null,
-                                        CreatedAt = updateTime,
-                                        CreatedBy = userId
-                                    };
-
-                                    _db.EmployeeContracts.Add(newContract);
-
-                                    // Logger le changement de poste
-                                    await _eventLogService.LogRelationEventAsync(
-                                        employeeId: id,
-                                        eventName: EmployeeEventLogService.EventNames.JobPositionChanged,
-                                        oldValueId: currentContract.JobPositionId,
-                                        oldValueName: currentJobPosition?.Name,
-                                        newValueId: newJobPosition.Id,
-                                        newValueName: newJobPosition.Name,
-                                        createdBy: userId
-                                    );
-
-                                    // Logger la création du nouveau contrat
-                                    await _eventLogService.LogSimpleEventAsync(
-                                        employeeId: id,
-                                        eventName: EmployeeEventLogService.EventNames.ContractCreated,
-                                        oldValue: null,
-                                        newValue: $"{newJobPosition.Name} - {currentContract.ContractType?.ContractTypeName}",
-                                        createdBy: userId
-                                    );
-
-                                    hasChanges = true;
-                                    Console.WriteLine("  ✓ Position modifiée");
-                                }
-                                else if (newJobPosition == null)
-                                {
-                                    Console.WriteLine($"  ⚠ Poste '{strValue}' non trouvé pour cette entreprise");
-                                }
-                                else
-                                {
-                                    Console.WriteLine("  ⊘ Pas de changement");
-                                }
+                                Console.WriteLine("  ⊘ Pas de changement");
+                                break;
                             }
-                            else
+
+                            Console.WriteLine($"  → Changement de poste: {currentContract.JobPosition?.Name} → {newJobPosition.Name}");
+
+                            // Fermer l'ancien contrat
+                            currentContract.EndDate = DateTime.UtcNow;
+                            currentContract.ModifiedAt = updateTime;
+                            currentContract.ModifiedBy = userId;
+
+                            await _eventLogService.LogSimpleEventAsync(
+                                employeeId: id,
+                                eventName: EmployeeEventLogService.EventNames.ContractTerminated,
+                                oldValue: $"{currentContract.JobPosition?.Name} - {currentContract.ContractType?.ContractTypeName}",
+                                newValue: currentContract.EndDate.Value.ToString("yyyy-MM-dd"),
+                                createdBy: userId
+                            );
+
+                            // Créer le nouveau contrat
+                            var newContract = new EmployeeContract
                             {
-                                Console.WriteLine("  ⚠ Aucun contrat actif trouvé");
-                            }
+                                EmployeeId = id,
+                                CompanyId = employee.CompanyId,
+                                JobPositionId = newJobPosition.Id,
+                                ContractTypeId = currentContract.ContractTypeId,
+                                StartDate = DateTime.UtcNow,
+                                CreatedAt = updateTime,
+                                CreatedBy = userId
+                            };
+
+                            _db.EmployeeContracts.Add(newContract);
+
+                            await _eventLogService.LogRelationEventAsync(
+                                employeeId: id,
+                                eventName: EmployeeEventLogService.EventNames.JobPositionChanged,
+                                oldValueId: currentContract.JobPositionId,
+                                oldValueName: currentContract.JobPosition?.Name,
+                                newValueId: newJobPosition.Id,
+                                newValueName: newJobPosition.Name,
+                                createdBy: userId
+                            );
+
+                            await _eventLogService.LogSimpleEventAsync(
+                                employeeId: id,
+                                eventName: EmployeeEventLogService.EventNames.ContractCreated,
+                                oldValue: null,
+                                newValue: $"{newJobPosition.Name} - {currentContract.ContractType?.ContractTypeName}",
+                                createdBy: userId
+                            );
+
+                            hasChanges = true;
+                            Console.WriteLine("  ✓ Poste modifié");
+                            break;
                         }
-                        break;
+
+                    case "startdate":
+                        {
+                            if (string.IsNullOrWhiteSpace(strValue))
+                                return BadRequest(new { Message = "StartDate requis" });
+
+                            if (!DateTime.TryParse(strValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var newStartDate))
+                                return BadRequest(new { Message = "Format de date invalide" });
+
+                            newStartDate = newStartDate.Date;
+
+                            // Charger le contrat actif
+                            var currentContract = await _db.EmployeeContracts
+                                .AsTracking()
+                                .Include(c => c.JobPosition)
+                                .Include(c => c.ContractType)
+                                .FirstOrDefaultAsync(c =>
+                                    c.EmployeeId == id &&
+                                    c.DeletedAt == null &&
+                                    c.EndDate == null);
+
+                            if (currentContract == null)
+                                return Conflict(new { Message = "Aucun contrat actif trouvé" });
+
+                            if (currentContract.StartDate.Date == newStartDate)
+                            {
+                                Console.WriteLine("  ⊘ StartDate identique");
+                                break;
+                            }
+
+                            if (currentContract.StartDate <= DateTime.UtcNow.Date)
+                                return Conflict(new
+                                {
+                                    Message = "Impossible de modifier la date de début d'un contrat déjà effectif"
+                                });
+
+                            if (newStartDate < DateTime.UtcNow.Date)
+                                return BadRequest(new
+                                {
+                                    Message = "La date de début ne peut pas être dans le passé"
+                                });
+
+                            Console.WriteLine($"  → Changement StartDate: {currentContract.StartDate:yyyy-MM-dd} → {newStartDate:yyyy-MM-dd}");
+
+                            await _eventLogService.LogSimpleEventAsync(
+                                employeeId: id,
+                                eventName: EmployeeEventLogService.EventNames.ContractStartDateChanged,
+                                oldValue: currentContract.StartDate.ToString("yyyy-MM-dd"),
+                                newValue: newStartDate.ToString("yyyy-MM-dd"),
+                                createdBy: userId
+                            );
+
+                            currentContract.StartDate = newStartDate;
+                            currentContract.ModifiedAt = updateTime;
+                            currentContract.ModifiedBy = userId;
+
+                            hasChanges = true;
+                            Console.WriteLine("  ✓ StartDate modifiée");
+                            break;
+                        }
 
                     default:
                         Console.WriteLine($"  ⚠ Champ non reconnu: {key}");
@@ -2618,6 +2901,18 @@ namespace payzen_backend.Controllers.Employees
 
             return Ok(result);
         }
+        
+        private static string MapStatusToFrontend(string statusName)
+        {
+            return statusName switch
+            {
+                "Active" => "Active",
+                "En congé" => "on_leave",
+                "Suspendu" => "inactive",
+                "Licencié" => "licencié",
+                _ => "inactive"
+            };
+        }
         /// <summary>
         /// Convertit un JsonElement en type .NET approprié
         /// </summary>
@@ -2652,230 +2947,6 @@ namespace payzen_backend.Controllers.Employees
                     return element.ToString();
             }
         }
-        
-        /// <summary>
-        /// Supprime un employé (soft delete)
-        /// </summary>
-        [HttpDelete("{id}")]
-        //[HasPermission(DELETE_EMPLOYEE)]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var userId = User.GetUserId();
-
-            var employee = await _db.Employees
-                .Where(e => e.Id == id && e.DeletedAt == null)
-                .FirstOrDefaultAsync();
-
-            if (employee == null)
-                return NotFound(new { Message = "Employé non trouvé" });
-
-            // Vérifier si l'employé est manager d'autres employés
-            var hasSubordinates = await _db.Employees
-                .AnyAsync(e => e.ManagerId == id && e.DeletedAt == null);
-
-            if (hasSubordinates)
-                return BadRequest(new { Message = "Impossible de supprimer cet employé car il est manager d'autres employés" });
-
-            // Vérifier si l'employé est lié à un utilisateur
-            var hasUser = await _db.Users
-                .AnyAsync(u => u.EmployeeId == id && u.DeletedAt == null);
-
-            if (hasUser)
-                return BadRequest(new { Message = "Impossible de supprimer cet employé car il est lié à un compte utilisateur" });
-
-            // Soft delete
-            employee.DeletedAt = DateTime.UtcNow;
-            employee.DeletedBy = userId;
-
-            await _db.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        /// <summary>
-        /// Récupère toutes les données nécessaires pour le formulaire de création/modification d'employé
-        /// </summary>
-        /// <param name="companyId">ID de l'entreprise (optionnel, si non fourni utilise l'entreprise de l'utilisateur connecté)</param>
-        [HttpGet("form-data")]
-        public async Task<ActionResult<EmployeeFormDataDto>> GetFormData([FromQuery] int? companyId = null)
-        {
-            // Récupérer l'utilisateur authentifié
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new { Message = "Utilisateur non authentifié" });
-            }
-
-            var user = await _db.Users
-                .AsNoTracking()
-                .Include(u => u.Employee)
-                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive && u.DeletedAt == null);
-
-            if (user?.Employee == null)
-            {
-                return BadRequest(new { Message = "L'utilisateur n'est pas associé à un employé" });
-            }
-
-            // Utiliser le companyId fourni ou celui de l'utilisateur
-            var targetCompanyId = companyId ?? user.Employee.CompanyId;
-
-            // Vérifier que l'utilisateur a accès à cette entreprise
-            if (companyId.HasValue && companyId.Value != user.Employee.CompanyId)
-            {
-                // Vérifier si l'utilisateur a les permissions pour accéder à d'autres entreprises
-                // Pour l'instant, on restreint à sa propre entreprise
-                return Forbid();
-            }
-
-            var formData = new EmployeeFormDataDto();
-
-            // 1. Récupérer les statuts
-            formData.Statuses = await _db.Statuses
-                .Where(s => s.DeletedAt == null)
-                .Select(s => new StatusDto
-                {
-                    Id = s.Id,
-                    Name = s.Name
-                })
-                .OrderBy(s => s.Name)
-                .ToListAsync();
-
-            // 2. Récupérer les genres
-            formData.Genders = await _db.Genders
-                .Where(g => g.DeletedAt == null)
-                .Select(g => new GenderDto
-                {
-                    Id = g.Id,
-                    Name = g.Name
-                })
-                .OrderBy(g => g.Name)
-                .ToListAsync();
-
-            // 3. Récupérer les niveaux d'éducation
-            formData.EducationLevels = await _db.EducationLevels
-                .Where(e => e.DeletedAt == null)
-                .Select(e => new EducationLevelDto
-                {
-                    Id = e.Id,
-                    Name = e.Name
-                })
-                .OrderBy(e => e.Name)
-                .ToListAsync();
-
-            // 4. Récupérer les statuts matrimoniaux
-            formData.MaritalStatuses = await _db.MaritalStatuses
-                .Where(m => m.DeletedAt == null)
-                .Select(m => new MaritalStatusDto
-                {
-                    Id = m.Id,
-                    Name = m.Name
-                })
-                .OrderBy(m => m.Name)
-                .ToListAsync();
-
-            // 5. Récupérer les pays
-            formData.Countries = await _db.Countries
-                .Where(c => c.DeletedAt == null)
-                .Select(c => new CountryDto
-                {
-                    Id = c.Id,
-                    CountryName = c.CountryName,
-                    CountryPhoneCode = c.CountryPhoneCode
-                })
-                .OrderBy(c => c.CountryName)
-                .ToListAsync();
-
-            // 6. Récupérer les villes
-            formData.Cities = await _db.Cities
-                .Where(c => c.DeletedAt == null)
-                .Include(c => c.Country)
-                .Select(c => new CityDto
-                {
-                    Id = c.Id,
-                    CityName = c.CityName,
-                    CountryId = c.CountryId,
-                    CountryName = c.Country != null ? c.Country.CountryName : null
-                })
-                .OrderBy(c => c.CountryName)
-                .ThenBy(c => c.CityName)
-                .ToListAsync();
-
-            // 7. Récupérer les départements de l'entreprise
-            formData.Departements = await _db.Departement
-                .Where(d => d.DeletedAt == null && d.CompanyId == targetCompanyId)
-                .Select(d => new DepartementDto
-                {
-                    Id = d.Id,
-                    DepartementName = d.DepartementName,
-                    CompanyId = d.CompanyId
-                })
-                .OrderBy(d => d.DepartementName)
-                .ToListAsync();
-
-            // 8. Récupérer les postes de l'entreprise
-            formData.JobPositions = await _db.JobPositions
-                .Where(j => j.DeletedAt == null && j.CompanyId == targetCompanyId)
-                .Select(j => new JobPositionDto
-                {
-                    Id = j.Id,
-                    Name = j.Name,
-                    CompanyId = j.CompanyId
-                })
-                .OrderBy(j => j.Name)
-                .ToListAsync();
-
-            // 9. Récupérer les types de contrat de l'entreprise
-            formData.ContractTypes = await _db.ContractTypes
-                .Where(c => c.DeletedAt == null && c.CompanyId == targetCompanyId)
-                .Select(c => new ContractTypeDto
-                {
-                    Id = c.Id,
-                    ContractTypeName = c.ContractTypeName,
-                    CompanyId = c.CompanyId
-                })
-                .OrderBy(c => c.ContractTypeName)
-                .ToListAsync();
-
-            // 10. Récupérer les managers potentiels (employés actifs de l'entreprise)
-            formData.PotentialManagers = await _db.Employees
-                .Where(e => e.DeletedAt == null && e.CompanyId == targetCompanyId)
-                .Include(e => e.Departement)
-                .Select(e => new EmployeeDto
-                {
-                    Id = e.Id,
-                    FirstName = e.FirstName,
-                    LastName = e.LastName,
-                    FullName = e.FirstName + " " + e.LastName,
-                    DepartementName = e.Departement != null ? e.Departement.DepartementName : null
-                })
-                .OrderBy(e => e.LastName)
-                .ThenBy(e => e.FirstName)
-                .ToListAsync();
-            // 11. Récupérer les nationalités
-            formData.Nationalities = await _db.Nationalities
-                .Where(n => n.DeletedAt == null)
-                .Select(n => new NationalityDto
-                {
-                    Id = n.Id,
-                    Name = n.Name
-                })
-                .OrderBy(n => n.Name)
-                .ToListAsync();
-
-            return Ok(formData);
-        }
-
-        private static string MapStatusToFrontend(string statusName)
-        {
-            return statusName switch
-            {
-                "Active" => "Active",
-                "En congé" => "on_leave",
-                "Suspendu" => "inactive",
-                "Licencié" => "licencié",
-                _ => "inactive"
-            };
-        }
 
         /// <summary>
         /// Récupère l'historique des modifications d'un employé
@@ -2894,6 +2965,61 @@ namespace payzen_backend.Controllers.Employees
                 .ToListAsync();
 
             return Ok(history);
+        }
+
+        /// <summary>
+        /// Récupère tous les employés avec informations simplifiées
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<EmployeeSimpleDto>>> GetAllEmployees()
+        {
+            Console.WriteLine("=== GET ALL EMPLOYEES ===");
+
+            var employees = await _db.Employees
+                .AsNoTracking()
+                .Where(e => e.DeletedAt == null)
+                .Include(e => e.Company)
+                .Include(e => e.Status)
+                .OrderBy(e => e.Company!.CompanyName)
+                .ThenBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
+
+            Console.WriteLine($"Nombre d'employés trouvés: {employees.Count}");
+
+            var result = new List<EmployeeSimpleDto>();
+
+            foreach (var e in employees)
+            {
+                // Récupérer l'utilisateur associé à l'employé pour obtenir son rôle
+                var user = await _db.Users
+                    .AsNoTracking()
+                    .Where(u => u.EmployeeId == e.Id && u.DeletedAt == null && u.IsActive)
+                    .Include(u => u.UsersRoles)
+                        .ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync();
+
+                // Récupérer le premier rôle (ou null si aucun rôle)
+                var roleName = user?.UsersRoles?
+                    .Where(ur => ur.DeletedAt == null)
+                    .Select(ur => ur.Role?.Name)
+                    .FirstOrDefault();
+
+                result.Add(new EmployeeSimpleDto
+                {
+                    Id = e.Id,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    CompanyName = e.Company?.CompanyName ?? "",
+                    Email = e.Email,
+                    Phone = e.Phone,
+                    RoleName = roleName,
+                    StatusName = e.Status?.Name
+                });
+            }
+
+            Console.WriteLine($"Résultats formatés: {result.Count}");
+            return Ok(result);
         }
     }
 }

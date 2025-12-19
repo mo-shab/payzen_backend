@@ -2,40 +2,76 @@ using System.ComponentModel.DataAnnotations;
 
 namespace payzen_backend.Models.Company.Dtos
 {
+    /// <summary>
+    /// DTO pour mises à jour partielles d'une entreprise (PATCH)
+    /// Toutes les propriétés sont optionnelles (nullable) pour permettre des mises à jour partielles.
+    /// </summary>
     public class CompanyUpdateDto
     {
-        [StringLength(500, MinimumLength = 2, ErrorMessage = "Le nom de la société doit contenir entre 2 et 500 caractères")]
+        // Informations de base
+        [StringLength(500, MinimumLength = 2)]
         public string? CompanyName { get; set; }
 
-        [StringLength(500, ErrorMessage = "L'adresse ne peut pas dépasser 500 caractères")]
+        [EmailAddress]
+        [StringLength(500)]
+        public string? CompanyEmail { get; set; }
+
+        [StringLength(20)]
+        public string? CompanyPhoneNumber { get; set; }
+
+        [StringLength(10)]
+        public string? CountryPhoneCode { get; set; }
+
+        [StringLength(1000)]
         public string? CompanyAddress { get; set; }
 
-        public int? CityId { get; set; }
         public int? CountryId { get; set; }
+        public string? CountryName { get; set; } = string.Empty;
 
-        [StringLength(500, ErrorMessage = "Le numéro ICE ne peut pas dépasser 500 caractères")]
-        public string? IceNumber { get; set; }
+        // Ville : soit cityId (existante) soit cityName (nouvelle)
+        public int? CityId { get; set; }
+        [StringLength(500)]
+        public string? CityName { get; set; }
 
-        [StringLength(500, ErrorMessage = "Le numéro CNSS ne peut pas dépasser 500 caractères")]
+        // Identifiants
+        [StringLength(100)]
         public string? CnssNumber { get; set; }
 
-        [StringLength(500, ErrorMessage = "Le numéro IF ne peut pas dépasser 500 caractères")]
+        public bool? IsCabinetExpert { get; set; }
+
+        // Optionnels
+        [StringLength(100)]
+        public string? IceNumber { get; set; }
+
+        [StringLength(100)]
         public string? IfNumber { get; set; }
 
-        [StringLength(500, ErrorMessage = "Le numéro RC ne peut pas dépasser 500 caractères")]
+        [StringLength(100)]
         public string? RcNumber { get; set; }
 
-        [StringLength(500, ErrorMessage = "Le numéro RIB ne peut pas dépasser 500 caractères")]
+        [StringLength(100)]
         public string? RibNumber { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Le numéro de téléphone doit être valide")]
-        public int? PhoneNumber { get; set; }
+        [StringLength(50)]
+        public string? LegalForm { get; set; }
 
-        [EmailAddress(ErrorMessage = "Format d'email invalide")]
-        [StringLength(500, ErrorMessage = "L'email ne peut pas dépasser 500 caractères")]
-        public string? Email { get; set; }
+        public DateTime? FoundingDate { get; set; }
+
+        [StringLength(10)]
+        public string? Currency { get; set; }
+
+        [StringLength(50)]
+        public string? PayrollPeriodicity { get; set; }
+
+        [Range(1, 12)]
+        public int? FiscalYearStartMonth { get; set; }
+
+        [StringLength(200)]
+        public string? BusinessSector { get; set; }
+
+        [StringLength(100)]
+        public string? PaymentMethod { get; set; }
 
         public int? ManagedByCompanyId { get; set; }
-        public bool? IsCabinetExpert { get; set; }
     }
 }
