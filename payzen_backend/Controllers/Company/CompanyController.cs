@@ -8,6 +8,7 @@ using payzen_backend.Models.Referentiel;
 using payzen_backend.Models.Users;
 using payzen_backend.Services;
 using payzen_backend.Extensions;
+using payzen_backend.Authorization;
 
 namespace payzen_backend.Controllers.Company
 {
@@ -79,7 +80,11 @@ namespace payzen_backend.Controllers.Company
                     CompanyAddress = c.CompanyAddress != null ? c.CompanyAddress : null,
                     IceNumber = c.IceNumber,
                     IfNumber = c.IfNumber,
+                    RcNumber = c.RcNumber,
+                    LegalForm = c.LegalForm,
+                    FoundingDate = c.FoundingDate,
                     CnssNumber = c.CnssNumber,
+                    
                     CreatedAt = c.CreatedAt.DateTime
                 })
                 .FirstOrDefaultAsync();
@@ -530,6 +535,7 @@ namespace payzen_backend.Controllers.Company
         /// Supporte : modification des champs simples, changement/création de ville, vérifications d'unicité.
         /// </summary>
         [HttpPatch("{id}")]
+        //[HasPermission("EDIT_COMPANY")]
         public async Task<ActionResult<CompanyReadDto>> PatchCompany(int id, [FromBody] CompanyUpdateDto dto)
         {
             Console.WriteLine("=============Call Patch From Front End============");
@@ -561,11 +567,26 @@ namespace payzen_backend.Controllers.Company
 
             if (!string.IsNullOrWhiteSpace(dto.CompanyName) && dto.CompanyName.Trim() != company.CompanyName)
             {
+                var nameExists = await _db.Companies
+                    .AnyAsync(c => c.CompanyName.ToLower() == dto.CompanyName.Trim().ToLower() && c.DeletedAt == null && c.Id != id);
+                if (nameExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce nom" });
                 company.CompanyName = dto.CompanyName.Trim();
             }
 
             if (!string.IsNullOrWhiteSpace(dto.CompanyPhoneNumber) && dto.CompanyPhoneNumber.Trim() != company.PhoneNumber)
             {
+                // Vérification de l'unicité du numéro de téléphone
+                var phoneExists = await _db.Companies
+                    .AnyAsync(c => 
+                    c.PhoneNumber == dto.CompanyPhoneNumber.Trim() && 
+                    c.DeletedAt == null && 
+                    c.Id != id
+                    );
+
+                if (phoneExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce numéro de téléphone" });
+
                 company.PhoneNumber = dto.CompanyPhoneNumber.Trim();
             }
 
@@ -705,19 +726,88 @@ namespace payzen_backend.Controllers.Company
             // --- mise à jour CNSS ----
             if (!string.IsNullOrWhiteSpace(dto.CnssNumber))
             {
+                var cnssExists = await _db.Companies
+                    .AnyAsync(c => 
+                    c.CnssNumber == dto.CnssNumber.Trim() && 
+                    c.DeletedAt == null && 
+                    c.Id != id
+                    );
+
+                if (cnssExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce numéro CNSS" });
+
                 var cnssTrim = dto.CnssNumber!.Trim();
+
                 if (cnssTrim != company.CnssNumber)
                     company.CnssNumber = cnssTrim;
             }
 
             // ---- mise à jour ice ----
-            Console.WriteLine($"===== ICE DTO {dto.IceNumber}=========");
             if (!string.IsNullOrWhiteSpace(dto.IceNumber))
             {
+                var iceExists = await _db.Companies
+                    .AnyAsync(c => 
+                    c.IceNumber == dto.IceNumber.Trim() && 
+                    c.DeletedAt == null && 
+                    c.Id != id
+                    );
+
+                if (iceExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce numéro ICE" });
+
                 var iceTrim = dto.IceNumber!.Trim();
-                Console.WriteLine($"ICE NUMBER IS {iceTrim}");
+
                 if (iceTrim != company.IceNumber)
                     company.IceNumber = iceTrim;
+            }
+
+            // ----- Mise à Jour IfNumber
+            if (!string.IsNullOrWhiteSpace(dto.IfNumber))
+            {
+                var ifExists = await _db.Companies
+                    .AnyAsync(c =>
+                    c.IfNumber == dto.IfNumber.Trim() &&
+                    c.DeletedAt == null &&
+                    c.Id != id
+                    );
+                if (ifExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce numéro IF" });
+                var ifTrim = dto.IfNumber!.Trim();
+                if (ifTrim != company.IfNumber)
+                    company.IfNumber = ifTrim;
+            }
+
+            // mise à jour RC
+            if (!string.IsNullOrWhiteSpace(dto.RcNumber))
+            {
+                var rcExists = await _db.Companies
+                    .AnyAsync(c =>
+                    c.RcNumber == dto.RcNumber.Trim() &&
+                    c.DeletedAt == null &&
+                    c.Id != id
+                    );
+
+                if (rcExists)
+                    return Conflict(new { Message = "Une autre entreprise utilise déjà ce numéro RC" });
+
+                var rcTrim = dto.RcNumber!.Trim();
+
+                if (rcTrim != company.RcNumber)
+                    company.RcNumber = rcTrim;
+            }
+
+            // Mise à jour form juridique
+            if (!string.IsNullOrEmpty(dto.LegalForm))
+            {
+                var legalFormTrim = dto.LegalForm!.Trim();
+                if (legalFormTrim != company.LegalForm)
+                    company.LegalForm = legalFormTrim;
+            }
+
+            // Mise à jour date de fondation
+            if (dto.FoundingDate.HasValue && dto.FoundingDate.Value != company.FoundingDate)
+            {
+                company.FoundingDate = dto.FoundingDate.Value;
             }
             // ===== Audit =====
             company.ModifiedAt = DateTimeOffset.UtcNow;

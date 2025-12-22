@@ -112,6 +112,22 @@ namespace payzen_backend.Controllers.Auth
                 .Distinct()
                 .ToListAsync();
 
+            // Récupération de l'employee lié
+            var employee = user.Employee;
+
+            // Récupérer la société liée via l'employé, si applicable
+            var company = employee != null
+                ? await _db.Companies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == employee.CompanyId && c.DeletedAt == null)
+                : null;
+            var isCabinetExpert = company != null ? company.IsCabinetExpert : (bool?)null;
+            Console.WriteLine("==========================================================");
+            Console.WriteLine("==========================================================");
+            Console.WriteLine("==========================================================");
+            Console.WriteLine($" IsCabinetExpert: {isCabinetExpert}");
+            Console.WriteLine($"Company ID is : {company.Id}");
+
             // Génération du token JWT
             var token = await _jwt.GenerateTokenAsync(user.Id, user.Email);
 
@@ -132,7 +148,9 @@ namespace payzen_backend.Controllers.Auth
                     FirstName = user.Employee?.FirstName ?? "",
                     LastName = user.Employee?.LastName ?? "",
                     Roles = userRoles,
-                    Permissions = userPermissions
+                    Permissions = userPermissions,
+                    isCabinetExpert = isCabinetExpert ?? false,
+                    companyId = company.Id,
                 }
             };
 

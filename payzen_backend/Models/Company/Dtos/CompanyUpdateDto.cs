@@ -27,8 +27,6 @@ namespace payzen_backend.Models.Company.Dtos
 
         public int? CountryId { get; set; }
         public string? CountryName { get; set; } = string.Empty;
-
-        // Ville : soit cityId (existante) soit cityName (nouvelle)
         public int? CityId { get; set; }
         [StringLength(500)]
         public string? CityName { get; set; }
@@ -49,28 +47,10 @@ namespace payzen_backend.Models.Company.Dtos
         [StringLength(100)]
         public string? RcNumber { get; set; }
 
-        [StringLength(100)]
-        public string? RibNumber { get; set; }
-
         [StringLength(50)]
         public string? LegalForm { get; set; }
 
         public DateTime? FoundingDate { get; set; }
-
-        [StringLength(10)]
-        public string? Currency { get; set; }
-
-        [StringLength(50)]
-        public string? PayrollPeriodicity { get; set; }
-
-        [Range(1, 12)]
-        public int? FiscalYearStartMonth { get; set; }
-
-        [StringLength(200)]
-        public string? BusinessSector { get; set; }
-
-        [StringLength(100)]
-        public string? PaymentMethod { get; set; }
 
         public int? ManagedByCompanyId { get; set; }
     }

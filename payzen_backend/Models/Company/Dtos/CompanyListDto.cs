@@ -14,6 +14,9 @@ namespace payzen_backend.Models.Company.Dtos
         public string CnssNumber { get; set; } = string.Empty;
         public string? IceNumber { get; set; }
         public string? IfNumber { get; set; }
+        public string? RcNumber { get; set; }
+        public string? LegalForm { get; set; }
+        public DateTime? FoundingDate { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

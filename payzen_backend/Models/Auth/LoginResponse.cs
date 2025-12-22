@@ -20,5 +20,7 @@ namespace payzen_backend.Models.Auth
         public string LastName { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
         public List<string> Permissions { get; set; } = new();
+        public bool isCabinetExpert { get; set; }
+        public int companyId { get; set; }
     }
 }
