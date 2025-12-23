@@ -1,14 +1,18 @@
-using Microsoft.AspNetCore.Authorization;
+Ôªøusing Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using payzen_backend.Authorization;
 using payzen_backend.Data;
+using payzen_backend.Extensions;
 using payzen_backend.Models.Company.Dtos;
 using payzen_backend.Models.Employee;
 using payzen_backend.Models.Referentiel;
 using payzen_backend.Models.Users;
 using payzen_backend.Services;
-using payzen_backend.Extensions;
-using payzen_backend.Authorization;
+using System;
+using System.Linq;
+using System.Text.Json;
 
 namespace payzen_backend.Controllers.Company
 {
@@ -19,15 +23,17 @@ namespace payzen_backend.Controllers.Company
     {
         private readonly AppDbContext _db;
         private readonly PasswordGeneratorService _passwordGenerator;
+        private readonly CompanyEventLogService _companyEventLogService;
 
-        public CompanyController(AppDbContext db, PasswordGeneratorService passwordGenerator)
+        public CompanyController(AppDbContext db, PasswordGeneratorService passwordGenerator, CompanyEventLogService companyEventLogService)
         {
             _db = db;
             _passwordGenerator = passwordGenerator;
+            _companyEventLogService = companyEventLogService;
         }
 
         /// <summary>
-        /// RÈcupËre la liste de toutes les entreprises
+        /// R√©cup√®re la liste de toutes les entreprises
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CompanyListDto>>> GetAllCompanies()
@@ -57,7 +63,7 @@ namespace payzen_backend.Controllers.Company
         }
 
         /// <summary>
-        /// RÈcupËre une entreprise par son ID
+        /// R√©cup√®re une entreprise par son ID
         /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<CompanyListDto>> GetCompanyById(int id)
@@ -84,26 +90,26 @@ namespace payzen_backend.Controllers.Company
                     LegalForm = c.LegalForm,
                     FoundingDate = c.FoundingDate,
                     CnssNumber = c.CnssNumber,
-                    
+
                     CreatedAt = c.CreatedAt.DateTime
                 })
                 .FirstOrDefaultAsync();
 
             if (company == null)
-                return NotFound(new { Message = "Entreprise non trouvÈe" });
+                return NotFound(new { Message = "Entreprise non trouv√©e" });
 
             return Ok(company);
         }
 
         /// <summary>
-        /// RÈcupËre les entreprises par ville
+        /// R√©cup√®re les entreprises par ville
         /// </summary>
         [HttpGet("by-city/{cityId}")]
         public async Task<ActionResult<IEnumerable<CompanyListDto>>> GetCompaniesByCity(int cityId)
         {
             var cityExists = await _db.Cities.AnyAsync(c => c.Id == cityId && c.DeletedAt == null);
             if (!cityExists)
-                return NotFound(new { Message = "Ville non trouvÈe" });
+                return NotFound(new { Message = "Ville non trouv√©e" });
 
             var companies = await _db.Companies
                 .AsNoTracking()
@@ -129,14 +135,14 @@ namespace payzen_backend.Controllers.Company
         }
 
         /// <summary>
-        /// RÈcupËre les entreprises par pays
+        /// R√©cup√®re les entreprises par pays
         /// </summary>
         [HttpGet("by-country/{countryId}")]
         public async Task<ActionResult<IEnumerable<CompanyListDto>>> GetCompaniesByCountry(int countryId)
         {
             var countryExists = await _db.Countries.AnyAsync(c => c.Id == countryId && c.DeletedAt == null);
             if (!countryExists)
-                return NotFound(new { Message = "Pays non trouvÈ" });
+                return NotFound(new { Message = "Pays non trouv√©" });
 
             var companies = await _db.Companies
                 .AsNoTracking()
@@ -172,8 +178,8 @@ namespace payzen_backend.Controllers.Company
 
             var companies = await _db.Companies
                 .AsNoTracking()
-                .Where(c => c.DeletedAt == null && 
-                            (c.CompanyName.Contains(searchTerm) || 
+                .Where(c => c.DeletedAt == null &&
+                            (c.CompanyName.Contains(searchTerm) ||
                              c.Email.Contains(searchTerm) ||
                              c.CnssNumber.Contains(searchTerm)))
                 .Include(c => c.City)
@@ -197,14 +203,14 @@ namespace payzen_backend.Controllers.Company
         }
 
         /// <summary>
-        /// RÈcupËre toutes les donnÈes nÈcessaires pour le formulaire de crÈation d'entreprise
+        /// R√©cup√®re toutes les donn√©es n√©cessaires pour le formulaire de cr√©ation d'entreprise
         /// </summary>
         [HttpGet("form-data")]
         public async Task<ActionResult<CompanyFormDataDto>> GetFormData()
         {
             var formData = new CompanyFormDataDto();
 
-            // 1. RÈcupÈrer tous les pays
+            // 1. R√©cup√©rer tous les pays
             formData.Countries = await _db.Countries
                 .Where(c => c.DeletedAt == null)
                 .OrderBy(c => c.CountryName)
@@ -218,7 +224,7 @@ namespace payzen_backend.Controllers.Company
                 })
                 .ToListAsync();
 
-            // 2. RÈcupÈrer toutes les villes avec leur pays
+            // 2. R√©cup√©rer toutes les villes avec leur pays
             formData.Cities = await _db.Cities
                 .Where(c => c.DeletedAt == null)
                 .Include(c => c.Country)
@@ -237,7 +243,7 @@ namespace payzen_backend.Controllers.Company
         }
 
         /// <summary>
-        /// CrÈe une nouvelle entreprise avec son administrateur
+        /// Cr√©e une nouvelle entreprise avec son administrateur
         /// </summary>
         [HttpPost]
         public async Task<ActionResult<CompanyCreateResponseDto>> CreateCompany([FromBody] CompanyCreateDto dto)
@@ -245,12 +251,12 @@ namespace payzen_backend.Controllers.Company
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // ===== VALIDATIONS PERSONNALIS…ES =====
+            // ===== VALIDATIONS PERSONNALIS√âES =====
 
             // Validation ville
             if (!dto.CityId.HasValue && string.IsNullOrWhiteSpace(dto.CityName))
             {
-                return BadRequest(new { Message = "Veuillez sÈlectionner une ville existante ou fournir le nom d'une nouvelle ville" });
+                return BadRequest(new { Message = "Veuillez s√©lectionner une ville existante ou fournir le nom d'une nouvelle ville" });
             }
 
             if (dto.CityId.HasValue && !string.IsNullOrWhiteSpace(dto.CityName))
@@ -269,19 +275,19 @@ namespace payzen_backend.Controllers.Company
                 return BadRequest(new { Message = "Ne fournissez pas de mot de passe si GeneratePassword est true" });
             }
 
-            // ===== RÈcuprÈrer le Id du User courant =====
+            // ===== R√âCUPR√âRER LE Id du User courant =====
             var currentUserId = User.GetUserId();
 
-            // ===== V…RIFIER QUE LE PAYS EXISTE =====
+            // ===== V√âRIFIER QUE LE PAYS EXISTE =====
 
             var country = await _db.Countries
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == dto.CountryId && c.DeletedAt == null);
 
             if (country == null)
-                return NotFound(new { Message = "Pays non trouvÈ" });
+                return NotFound(new { Message = "Pays non trouv√©" });
 
-            // ===== G…RER LA VILLE (Existante ou Nouvelle) =====
+            // ===== G√âRER LA VILLE (Existante ou Nouvelle) =====
 
             int finalCityId;
 
@@ -292,10 +298,10 @@ namespace payzen_backend.Controllers.Company
                     .FirstOrDefaultAsync(c => c.Id == dto.CityId.Value && c.DeletedAt == null);
 
                 if (existingCity == null)
-                    return NotFound(new { Message = "Ville non trouvÈe" });
+                    return NotFound(new { Message = "Ville non trouv√©e" });
 
                 if (existingCity.CountryId != dto.CountryId)
-                    return BadRequest(new { Message = "La ville sÈlectionnÈe n'appartient pas au pays choisi" });
+                    return BadRequest(new { Message = "La ville s√©lectionn√©e n'appartient pas au pays choisi" });
 
                 finalCityId = dto.CityId.Value;
             }
@@ -327,23 +333,23 @@ namespace payzen_backend.Controllers.Company
                 }
             }
 
-            // ===== V…RIFICATIONS D'UNICIT… ENTREPRISE =====
+            // ===== V√âRIFICATIONS D'UNICIT√â ENTREPRISE =====
 
             if (await _db.Companies.AnyAsync(c => c.Email == dto.CompanyEmail && c.DeletedAt == null))
-                return Conflict(new { Message = "Une entreprise avec cet email existe dÈj‡" });
+                return Conflict(new { Message = "Une entreprise avec cet email existe d√©j√†" });
 
             if (await _db.Companies.AnyAsync(c => c.CnssNumber == dto.CnssNumber && c.DeletedAt == null))
-                return Conflict(new { Message = "Une entreprise avec ce numÈro CNSS existe dÈj‡" });
+                return Conflict(new { Message = "Une entreprise avec ce num√©ro CNSS existe d√©j√†" });
 
-            // ===== V…RIFICATIONS D'UNICIT… ADMIN =====
+            // ===== V√âRIFICATIONS D'UNICIT√â ADMIN =====
 
             if (await _db.Employees.AnyAsync(e => e.Email == dto.AdminEmail && e.DeletedAt == null))
-                return Conflict(new { Message = "Un employÈ avec cet email existe dÈj‡" });
+                return Conflict(new { Message = "Un employ√© avec cet email existe d√©j√†" });
 
             if (await _db.Users.AnyAsync(u => u.Email == dto.AdminEmail && u.DeletedAt == null))
-                return Conflict(new { Message = "Un utilisateur avec cet email existe dÈj‡" });
+                return Conflict(new { Message = "Un utilisateur avec cet email existe d√©j√†" });
 
-            // ===== CR…ER L'ENTREPRISE =====
+            // ===== CR√âER L'ENTREPRISE =====
 
             var company = new Models.Company.Company
             {
@@ -374,14 +380,14 @@ namespace payzen_backend.Controllers.Company
             _db.Companies.Add(company);
             await _db.SaveChangesAsync();
 
-            // ===== R…CUP…RER LE STATUT "ACTIVE" =====
+            // ===== R√âCUP√âRER LE STATUT "ACTIVE" =====
 
             var activeStatus = await _db.Statuses
                 .FirstOrDefaultAsync(s => s.Name.ToLower() == "active" && s.DeletedAt == null);
 
             if (activeStatus == null)
             {
-                // CrÈer le statut Active s'il n'existe pas
+                // Cr√©er le statut Active s'il n'existe pas
                 activeStatus = new Models.Referentiel.Status
                 {
                     Name = "Active",
@@ -392,7 +398,7 @@ namespace payzen_backend.Controllers.Company
                 await _db.SaveChangesAsync();
             }
 
-            // ===== CR…ER L'EMPLOY… ADMINISTRATEUR =====
+            // ===== CR√âER L'EMPLOY√â ADMINISTRATEUR =====
 
             var adminEmployee = new Employee
             {
@@ -405,13 +411,13 @@ namespace payzen_backend.Controllers.Company
                 CinNumber = "TEMP-" + Guid.NewGuid().ToString().Substring(0, 8).ToUpper(), // Temporaire
                 DateOfBirth = DateTime.UtcNow.AddYears(-30), // Temporaire
                 CreatedAt = DateTimeOffset.UtcNow,
-                CreatedBy = currentUserId // SystËme
+                CreatedBy = currentUserId // Syst√®me
             };
 
             _db.Employees.Add(adminEmployee);
             await _db.SaveChangesAsync();
 
-            // ===== G…N…RER OU UTILISER LE MOT DE PASSE =====
+            // ===== G√âN√âRER OU UTILISER LE MOT DE PASSE =====
 
             string password;
 
@@ -424,7 +430,7 @@ namespace payzen_backend.Controllers.Company
                 password = dto.AdminPassword!;
             }
 
-            // ===== CR…ER LE COMPTE UTILISATEUR =====
+            // ===== CR√âER LE COMPTE UTILISATEUR =====
 
             var username = _passwordGenerator.GenerateUsername(dto.AdminFirstName, dto.AdminLastName);
             var suffix = 1;
@@ -443,20 +449,20 @@ namespace payzen_backend.Controllers.Company
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                CreatedBy = currentUserId // SystËme
+                CreatedBy = currentUserId // Syst√®me
             };
 
             _db.Users.Add(adminUser);
             await _db.SaveChangesAsync();
 
-            // ===== ASSIGNER LE R‘LE ADMIN =====
+            // ===== ASSIGNER LE R√îLE ADMIN =====
 
             var adminRole = await _db.Roles
                 .FirstOrDefaultAsync(r => r.Name.ToLower() == "admin" && r.DeletedAt == null);
 
             if (adminRole == null)
             {
-                // CrÈer le rÙle Admin s'il n'existe pas
+                // Cr√©er le r√¥le Admin s'il n'existe pas
                 adminRole = new Models.Permissions.Roles
                 {
                     Name = "Admin",
@@ -479,7 +485,7 @@ namespace payzen_backend.Controllers.Company
             _db.UsersRoles.Add(userRole);
             await _db.SaveChangesAsync();
 
-            // ===== PR…PARER LA R…PONSE =====
+            // ===== PR√âPARER LA R√âPONSE =====
 
             var createdCompany = await _db.Companies
                 .AsNoTracking()
@@ -520,10 +526,10 @@ namespace payzen_backend.Controllers.Company
                     FirstName = adminEmployee.FirstName,
                     LastName = adminEmployee.LastName,
                     Phone = adminEmployee.Phone,
-                    Password = dto.GeneratePassword ? password : null, // Ne retourner le mot de passe que s'il a ÈtÈ gÈnÈrÈ
+                    Password = dto.GeneratePassword ? password : null, // Ne retourner le mot de passe que s'il a √©t√© g√©n√©r√©
                     Message = dto.GeneratePassword
-                        ? "Un mot de passe temporaire a ÈtÈ gÈnÈrÈ. Veuillez le changer lors de la premiËre connexion."
-                        : "Compte administrateur crÈÈ avec succËs."
+                        ? "Un mot de passe temporaire a √©t√© g√©n√©r√©. Veuillez le changer lors de la premi√®re connexion."
+                        : "Compte administrateur cr√©√© avec succ√®s."
                 }
             };
 
@@ -531,8 +537,282 @@ namespace payzen_backend.Controllers.Company
         }
 
         /// <summary>
-        /// Mise ‡ jour partielle d'une entreprise (PATCH /api/companies/{id})
-        /// Supporte : modification des champs simples, changement/crÈation de ville, vÈrifications d'unicitÈ.
+        /// Cr√©e une nouvelle entreprise de la part d'un expert comptable
+        /// </summary>
+        [HttpPost("create-by-expert")]
+        public async Task<ActionResult<CompanyCreateResponseDto>> CreateCompanyByExpert([FromBody] CompanyCreateByExpertDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // V√©rifier que le cabinet expert gestionnaire existe et est bien un cabinet
+            var managingCompany = await _db.Companies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == dto.ManagedByCompanyId && c.DeletedAt == null);
+
+            var currentUserId = User.GetUserId();
+
+            // V√©rifier que l'utilisateur courant appartient au cabinet expert gestionnaire
+            var currentUser = await _db.Users.FindAsync(currentUserId);
+            if (currentUser == null || (await _db.Employees.FindAsync(currentUser.EmployeeId))?.CompanyId != dto.ManagedByCompanyId)
+                return Forbid();
+
+            if (managingCompany == null)
+                return NotFound(new { Message = "Cabinet expert gestionnaire introuvable" });
+
+            if (!managingCompany.IsCabinetExpert)
+                return BadRequest(new { Message = "La soci√©t√© sp√©cifi√©e comme gestionnaire n'est pas un cabinet expert" });
+
+            // Validation ville
+            if (!dto.CityId.HasValue && string.IsNullOrWhiteSpace(dto.CityName))
+                return BadRequest(new { Message = "Veuillez s√©lectionner une ville existante ou fournir le nom d'une nouvelle ville" });
+
+            if (dto.CityId.HasValue && !string.IsNullOrWhiteSpace(dto.CityName))
+                return BadRequest(new { Message = "Veuillez choisir entre une ville existante (CityId) ou une nouvelle ville (CityName), pas les deux" });
+
+            // Validation mot de passe admin
+            if (!dto.GeneratePassword && string.IsNullOrWhiteSpace(dto.AdminPassword))
+                return BadRequest(new { Message = "Le mot de passe est requis si GeneratePassword est false" });
+
+            if (dto.GeneratePassword && !string.IsNullOrWhiteSpace(dto.AdminPassword))
+                return BadRequest(new { Message = "Ne fournissez pas de mot de passe si GeneratePassword est true" });
+
+            // V√©rifier le pays
+            var country = await _db.Countries
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == dto.CountryId && c.DeletedAt == null);
+
+            if (country == null)
+                return NotFound(new { Message = "Pays non trouv√©" });
+
+            // G√©rer la ville (existante ou nouvelle)
+            int finalCityId;
+            if (dto.CityId.HasValue)
+            {
+                var existingCity = await _db.Cities
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == dto.CityId.Value && c.DeletedAt == null);
+
+                if (existingCity == null)
+                    return NotFound(new { Message = "Ville non trouv√©e" });
+
+                if (existingCity.CountryId != dto.CountryId)
+                    return BadRequest(new { Message = "La ville s√©lectionn√©e n'appartient pas au pays choisi" });
+
+                finalCityId = dto.CityId.Value;
+            }
+            else
+            {
+                var duplicateCity = await _db.Cities
+                    .FirstOrDefaultAsync(c =>
+                        c.CountryId == dto.CountryId &&
+                        c.CityName.ToLower() == dto.CityName!.ToLower() &&
+                        c.DeletedAt == null);
+
+                if (duplicateCity != null)
+                {
+                    finalCityId = duplicateCity.Id;
+                }
+                else
+                {
+                    var newCity = new City
+                    {
+                        CityName = dto.CityName!.Trim(),
+                        CountryId = dto.CountryId,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        CreatedBy = currentUserId,
+                    };
+
+                    _db.Cities.Add(newCity);
+                    await _db.SaveChangesAsync();
+                    finalCityId = newCity.Id;
+                }
+            }
+
+            // V√©rifications d'unicit√© entreprise & admin (m√™mes r√®gles que CreateCompany)
+            if (await _db.Companies.AnyAsync(c => c.Email == dto.CompanyEmail && c.DeletedAt == null))
+                return Conflict(new { Message = "Une entreprise avec cet email existe d√©j√†" });
+
+            if (await _db.Companies.AnyAsync(c => c.CnssNumber == dto.CnssNumber && c.DeletedAt == null))
+                return Conflict(new { Message = "Une entreprise avec ce num√©ro CNSS existe d√©j√†" });
+
+            if (await _db.Employees.AnyAsync(e => e.Email == dto.AdminEmail && e.DeletedAt == null))
+                return Conflict(new { Message = "Un employ√© avec cet email existe d√©j√†" });
+
+            if (await _db.Users.AnyAsync(u => u.Email == dto.AdminEmail && u.DeletedAt == null))
+                return Conflict(new { Message = "Un utilisateur avec cet email existe d√©j√†" });
+
+            // Cr√©er l'entreprise en assignant le gestionnaire (ManagedByCompanyId)
+            var company = new Models.Company.Company
+            {
+                CompanyName = dto.CompanyName.Trim(),
+                Email = dto.CompanyEmail.Trim(),
+                PhoneNumber = dto.CompanyPhoneNumber.Trim(),
+                CountryPhoneCode = dto.CountryPhoneCode ?? country.CountryPhoneCode,
+                CompanyAddress = dto.CompanyAddress.Trim(),
+                CityId = finalCityId,
+                CountryId = dto.CountryId,
+                CnssNumber = dto.CnssNumber.Trim(),
+                IsCabinetExpert = dto.IsCabinetExpert,
+                IceNumber = dto.IceNumber?.Trim(),
+                IfNumber = dto.IfNumber?.Trim(),
+                RcNumber = dto.RcNumber?.Trim(),
+                RibNumber = dto.RibNumber?.Trim(),
+                LegalForm = dto.LegalForm?.Trim(),
+                FoundingDate = dto.FoundingDate,
+                Currency = "MAD",
+                PayrollPeriodicity = "Mensuelle",
+                FiscalYearStartMonth = 1,
+                BusinessSector = dto.BusinessSector?.Trim(),
+                PaymentMethod = dto.PaymentMethod?.Trim(),
+                ManagedByCompanyId = dto.ManagedByCompanyId,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            _db.Companies.Add(company);
+            await _db.SaveChangesAsync();
+
+            // Cr√©er l'employ√© administrateur
+            var activeStatus = await _db.Statuses
+                .FirstOrDefaultAsync(s => s.Name.ToLower() == "active" && s.DeletedAt == null);
+
+            if (activeStatus == null)
+            {
+                activeStatus = new Models.Referentiel.Status
+                {
+                    Name = "Active",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    CreatedBy = currentUserId
+                };
+                _db.Statuses.Add(activeStatus);
+                await _db.SaveChangesAsync();
+            }
+
+            var adminEmployee = new Employee
+            {
+                FirstName = dto.AdminFirstName.Trim(),
+                LastName = dto.AdminLastName.Trim(),
+                Email = dto.AdminEmail.Trim(),
+                Phone = dto.AdminPhone.Trim(),
+                CompanyId = company.Id,
+                StatusId = activeStatus.Id,
+                CinNumber = "TEMP-" + Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
+                DateOfBirth = DateTime.UtcNow.AddYears(-30),
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            _db.Employees.Add(adminEmployee);
+            await _db.SaveChangesAsync();
+
+            // Mot de passe
+            string password = dto.GeneratePassword ? _passwordGenerator.GenerateTemporaryPassword() : dto.AdminPassword!;
+
+            // G√©n√©rer username unique
+            var username = _passwordGenerator.GenerateUsername(dto.AdminFirstName, dto.AdminLastName);
+            var suffix = 1;
+            while (await _db.Users.AnyAsync(u => u.Username == username && u.DeletedAt == null))
+            {
+                username = _passwordGenerator.GenerateUsername(dto.AdminFirstName, dto.AdminLastName, suffix);
+                suffix++;
+            }
+
+            var adminUser = new Users
+            {
+                EmployeeId = adminEmployee.Id,
+                Username = username,
+                Email = dto.AdminEmail.Trim(),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            _db.Users.Add(adminUser);
+            await _db.SaveChangesAsync();
+
+            // Assigner r√¥le Admin (m√™me comportement que CreateCompany)
+            var adminRole = await _db.Roles
+                .FirstOrDefaultAsync(r => r.Name.ToLower() == "admin" && r.DeletedAt == null);
+
+            if (adminRole == null)
+            {
+                adminRole = new Models.Permissions.Roles
+                {
+                    Name = "Admin",
+                    Description = "Administrateur de l'entreprise",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    CreatedBy = currentUserId
+                };
+                _db.Roles.Add(adminRole);
+                await _db.SaveChangesAsync();
+            }
+
+            var userRole = new Models.Permissions.UsersRoles
+            {
+                UserId = adminUser.Id,
+                RoleId = adminRole.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            _db.UsersRoles.Add(userRole);
+            await _db.SaveChangesAsync();
+
+            // Pr√©parer la r√©ponse
+            var createdCompany = await _db.Companies
+                .AsNoTracking()
+                .Include(c => c.City)
+                .Include(c => c.Country)
+                .FirstAsync(c => c.Id == company.Id);
+
+            var response = new CompanyCreateResponseDto
+            {
+                Company = new CompanyReadDto
+                {
+                    Id = createdCompany.Id,
+                    CompanyName = createdCompany.CompanyName,
+                    Email = createdCompany.Email,
+                    PhoneNumber = createdCompany.PhoneNumber,
+                    CountryPhoneCode = createdCompany.CountryPhoneCode,
+                    CompanyAddress = createdCompany.CompanyAddress,
+                    CityId = createdCompany.CityId,
+                    CityName = createdCompany.City?.CityName,
+                    CountryId = createdCompany.CountryId,
+                    CountryName = createdCompany.Country?.CountryName,
+                    CnssNumber = createdCompany.CnssNumber,
+                    IsCabinetExpert = createdCompany.IsCabinetExpert,
+                    IceNumber = createdCompany.IceNumber,
+                    IfNumber = createdCompany.IfNumber,
+                    RcNumber = createdCompany.RcNumber,
+                    LegalForm = createdCompany.LegalForm,
+                    FoundingDate = createdCompany.FoundingDate,
+                    BusinessSector = createdCompany.BusinessSector,
+                    CreatedAt = createdCompany.CreatedAt.DateTime
+                },
+                Admin = new AdminAccountDto
+                {
+                    EmployeeId = adminEmployee.Id,
+                    UserId = adminUser.Id,
+                    Username = adminUser.Username,
+                    Email = adminUser.Email,
+                    FirstName = adminEmployee.FirstName,
+                    LastName = adminEmployee.LastName,
+                    Phone = adminEmployee.Phone,
+                    Password = dto.GeneratePassword ? password : null,
+                    Message = dto.GeneratePassword
+                        ? "Un mot de passe temporaire a √©t√© g√©n√©r√©. Veuillez le changer lors de la premi√®re connexion."
+                        : "Compte administrateur cr√©√© avec succ√®s."
+                }
+            };
+
+            return CreatedAtAction(nameof(GetCompanyById), new { id = company.Id }, response);
+        }
+
+        /// <summary>
+        /// Mise √† jour partielle d'une entreprise (PATCH /api/companies/{id})
+        /// Supporte : modification des champs simples, changement/cr√©ation de ville, v√©rifications d'unicit√©.
         /// </summary>
         [HttpPatch("{id}")]
         //[HasPermission("EDIT_COMPANY")]
@@ -541,12 +821,17 @@ namespace payzen_backend.Controllers.Company
             Console.WriteLine("=============Call Patch From Front End============");
 
             if (dto == null)
-                return BadRequest(new { Message = "DonnÈes de mise ‡ jour requises" });
+                return BadRequest(new { Message = "Donn√©es de mise √† jour requises" });
 
+            // Logs pour debug (values re√ßues c√¥t√© API)
             Console.WriteLine("====================");
-            Console.WriteLine($"is Cabinet expert  : {dto.IsCabinetExpert}");
+            Console.WriteLine($"DTO raw: {JsonSerializer.Serialize(dto)}");
+            Console.WriteLine($"ModelState.IsValid: {ModelState.IsValid}");
+            Console.WriteLine($"Email re√ßu : '{dto.email ?? "null"}'");
+            Console.WriteLine($"Phone re√ßu : '{dto.phoneNumber ?? "null"}'");
 
             var currentUserId = User.GetUserId();
+            Console.WriteLine($"CurrentUserId (claims) : {currentUserId}");
 
             var company = await _db.Companies
                 .Include(c => c.City)
@@ -554,53 +839,117 @@ namespace payzen_backend.Controllers.Company
                 .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);
 
             if (company == null)
-                return NotFound(new { Message = "Entreprise non trouvÈe" });
+                return NotFound(new { Message = "Entreprise non trouv√©e" });
 
-            if (!string.IsNullOrWhiteSpace(dto.CompanyEmail) && dto.CompanyEmail.Trim() != company.Email)
+            // Log √©tat courant de l'entreprise avant modification
+            Console.WriteLine($"Company before update - Id:{company.Id} Email:'{company.Email}' Phone:'{company.PhoneNumber}' Name:'{company.CompanyName}'");
+
+            if (!string.IsNullOrWhiteSpace(dto.email) && dto.email.Trim() != company.Email)
             {
-                var exists = await _db.Companies.AnyAsync(c => c.Email == dto.CompanyEmail.Trim() && c.DeletedAt == null && c.Id != id);
-                if (exists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ cet email" });
+                var exists = await _db.Companies.AnyAsync(c =>
+                                                c.Email == dto.email.Trim() &&
+                                                c.DeletedAt == null &&
+                                                c.Id != id
+                                                );
 
-                company.Email = dto.CompanyEmail.Trim();
+                await _companyEventLogService.LogEventAsync(
+                    company.Id,
+                    "Email_Changed",
+                    company.Email,
+                    null,
+                    dto.email,
+                    null,
+                    currentUserId
+                );
+
+                if (exists)
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† cet email" });
+
+                company.Email = dto.email.Trim();
+
+                Console.WriteLine($"Company.Email set to: '{company.Email}'");
             }
 
             if (!string.IsNullOrWhiteSpace(dto.CompanyName) && dto.CompanyName.Trim() != company.CompanyName)
             {
                 var nameExists = await _db.Companies
-                    .AnyAsync(c => c.CompanyName.ToLower() == dto.CompanyName.Trim().ToLower() && c.DeletedAt == null && c.Id != id);
+                    .AnyAsync(c =>
+                              c.CompanyName.ToLower() == dto.CompanyName.Trim().ToLower() &&
+                              c.DeletedAt == null &&
+                              c.Id != id);
+
                 if (nameExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce nom" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce nom" });
+
+                await _companyEventLogService.LogEventAsync(
+                    company.Id,
+                    "CompanyName_Changed",
+                    company.CompanyName,
+                    null,
+                    dto.CompanyName,
+                    null,
+                    currentUserId
+                );
                 company.CompanyName = dto.CompanyName.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(dto.CompanyPhoneNumber) && dto.CompanyPhoneNumber.Trim() != company.PhoneNumber)
+            if (!string.IsNullOrWhiteSpace(dto.phoneNumber) && dto.phoneNumber.Trim() != company.PhoneNumber)
             {
-                // VÈrification de l'unicitÈ du numÈro de tÈlÈphone
+                // V√©rification de l'unicit√© du num√©ro de t√©l√©phone
                 var phoneExists = await _db.Companies
-                    .AnyAsync(c => 
-                    c.PhoneNumber == dto.CompanyPhoneNumber.Trim() && 
-                    c.DeletedAt == null && 
+                    .AnyAsync(c =>
+                    c.PhoneNumber == dto.phoneNumber.Trim() &&
+                    c.DeletedAt == null &&
                     c.Id != id
                     );
 
                 if (phoneExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce numÈro de tÈlÈphone" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce num√©ro de t√©l√©phone" });
 
-                company.PhoneNumber = dto.CompanyPhoneNumber.Trim();
+                await _companyEventLogService.LogEventAsync(
+                    company.Id,
+                    "Phone_Changed",
+                    company.PhoneNumber,
+                    null,
+                    dto.phoneNumber,
+                    null,
+                    currentUserId
+                );
+
+                company.PhoneNumber = dto.phoneNumber.Trim();
+
+                Console.WriteLine($"Company.PhoneNumber set to: '{company.PhoneNumber}'");
             }
 
             if (!string.IsNullOrWhiteSpace(dto.CompanyAddress) && dto.CompanyAddress.Trim() != company.CompanyAddress)
             {
+                await _companyEventLogService.LogEventAsync(
+                    company.Id,
+                    "Address_Changed",
+                    company.CompanyAddress,
+                    null,
+                    dto.CompanyAddress,
+                    null,
+                    currentUserId
+                );
+
                 company.CompanyAddress = dto.CompanyAddress.Trim();
             }
 
             if (dto.IsCabinetExpert.HasValue && dto.IsCabinetExpert.Value != company.IsCabinetExpert)
             {
+                await _companyEventLogService.LogSimpleEventAsync(
+                    company.Id,
+                    "IsCabinetExpert_Changed",
+                    company.IsCabinetExpert.ToString(),
+                    dto.IsCabinetExpert.Value.ToString(),
+                    currentUserId
+                );
+
                 company.IsCabinetExpert = dto.IsCabinetExpert.Value;
             }
 
-            // --- GÈrer le pays si envoyÈ par nom ou id ---
+            // --- G√©rer le pays si envoy√© par nom ou id ---
             if (!string.IsNullOrWhiteSpace(dto.CountryName) || dto.CountryId.HasValue)
             {
                 if (dto.CountryId.HasValue)
@@ -612,7 +961,17 @@ namespace payzen_backend.Controllers.Company
                             .FirstOrDefaultAsync(c => c.Id == dto.CountryId.Value && c.DeletedAt == null);
 
                         if (existingCountry == null)
-                            return NotFound(new { Message = "Pays non trouvÈ" });
+                            return NotFound(new { Message = "Pays non trouv√©" });
+
+                        await _companyEventLogService.LogRelationEventAsync(
+                            company.Id,
+                            "Country_Changed",
+                            company.CountryId,
+                            company.Country?.CountryName,
+                            existingCountry.Id,
+                            existingCountry.CountryName,
+                            currentUserId
+                        );
 
                         company.CountryId = existingCountry.Id;
                         company.CountryPhoneCode = existingCountry.CountryPhoneCode;
@@ -627,13 +986,23 @@ namespace payzen_backend.Controllers.Company
 
                     if (existingCountry != null)
                     {
+                        await _companyEventLogService.LogRelationEventAsync(
+                            company.Id,
+                            "Country_Changed",
+                            company.CountryId,
+                            company.Country?.CountryName,
+                            existingCountry.Id,
+                            existingCountry.CountryName,
+                            currentUserId
+                        );
+
                         company.CountryId = existingCountry.Id;
                         company.CountryPhoneCode = existingCountry.CountryPhoneCode;
                         Console.WriteLine($"Country set to existing -> {existingCountry.CountryName}");
                     }
                     else
                     {
-                        // CrÈation d'un pays minimal si introuvable (utiliser indicatif fourni ou fallback)
+                        // Cr√©ation d'un pays minimal si introuvable (utiliser indicatif fourni ou fallback)
                         var phoneCode = !string.IsNullOrWhiteSpace(dto.CountryPhoneCode)
                             ? dto.CountryPhoneCode!.Trim()
                             : company.CountryPhoneCode ?? "+000";
@@ -658,6 +1027,16 @@ namespace payzen_backend.Controllers.Company
                         _db.Countries.Add(newCountry);
                         await _db.SaveChangesAsync();
 
+                        await _companyEventLogService.LogRelationEventAsync(
+                            company.Id,
+                            "Country_Changed",
+                            company.CountryId,
+                            company.Country?.CountryName,
+                            newCountry.Id,
+                            newCountry.CountryName,
+                            currentUserId
+                        );
+
                         company.CountryId = newCountry.Id;
                         company.CountryPhoneCode = newCountry.CountryPhoneCode;
                         Console.WriteLine($"Country created -> {newCountry.CountryName}");
@@ -665,44 +1044,56 @@ namespace payzen_backend.Controllers.Company
                 }
             }
 
-            // --- GÈrer la ville si envoyÈ par nom ou id ---
+            // --- Gestion de la ville (par Id ou par Nom) ---
             if (!string.IsNullOrWhiteSpace(dto.CityName) || dto.CityId.HasValue)
             {
-                // NÈcessite un CountryId pour associer la ville ; si non dÈfini, utiliser company.CountryId
+                // Country obligatoire pour la ville
                 if (company.CountryId <= 0)
-                    return BadRequest(new { Message = "CountryId requis pour crÈer/rechercher une ville. Envoyez d'abord CountryName ou CountryId." });
+                    return BadRequest(new { Message = "CountryId requis pour cr√©er/rechercher une ville." });
 
+                int newCityId;
+                string newCityName;
+
+                // ==========================
+                // Cas 1 : CityId fourni
+                // ==========================
                 if (dto.CityId.HasValue)
                 {
-                    if (company.CityId != dto.CityId.Value)
-                    {
-                        var existingCity = await _db.Cities
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(c => c.Id == dto.CityId.Value && c.DeletedAt == null);
+                    // Aucun changement r√©el
+                    if (company.CityId == dto.CityId.Value)
+                        goto END_CITY_UPDATE;
 
-                        if (existingCity == null)
-                            return NotFound(new { Message = "Ville non trouvÈe" });
+                    var existingCity = await _db.Cities
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(c =>
+                            c.Id == dto.CityId.Value &&
+                            c.DeletedAt == null);
 
-                        if (existingCity.CountryId != company.CountryId)
-                            return BadRequest(new { Message = "La ville choisie n'appartient pas au pays courant de l'entreprise" });
+                    if (existingCity == null)
+                        return NotFound(new { Message = "Ville non trouv√©e" });
 
-                        company.CityId = existingCity.Id;
-                        Console.WriteLine($"City updated by id -> {existingCity.CityName}");
-                    }
+                    if (existingCity.CountryId != company.CountryId)
+                        return BadRequest(new { Message = "La ville choisie n'appartient pas au pays courant de l'entreprise" });
+
+                    newCityId = existingCity.Id;
+                    newCityName = existingCity.CityName;
                 }
+                // ==========================
+                // Cas 2 : CityName fourni
+                // ==========================
                 else
                 {
                     var cityNameTrim = dto.CityName!.Trim();
-                    var existingCity = await _db.Cities
-                        .FirstOrDefaultAsync(c =>
-                            c.CityName.ToLower() == cityNameTrim.ToLower() &&
-                            c.CountryId == company.CountryId &&
-                            c.DeletedAt == null);
+
+                    var existingCity = await _db.Cities.FirstOrDefaultAsync(c =>
+                        c.CityName.ToLower() == cityNameTrim.ToLower() &&
+                        c.CountryId == company.CountryId &&
+                        c.DeletedAt == null);
 
                     if (existingCity != null)
                     {
-                        company.CityId = existingCity.Id;
-                        Console.WriteLine($"City set to existing -> {existingCity.CityName}");
+                        newCityId = existingCity.Id;
+                        newCityName = existingCity.CityName;
                     }
                     else
                     {
@@ -717,51 +1108,96 @@ namespace payzen_backend.Controllers.Company
                         _db.Cities.Add(newCity);
                         await _db.SaveChangesAsync();
 
-                        company.CityId = newCity.Id;
-                        Console.WriteLine($"City created -> {newCity.CityName}");
+                        newCityId = newCity.Id;
+                        newCityName = newCity.CityName;
                     }
                 }
+
+                // ==========================
+                // LOG + UPDATE UNIQUEMENT SI CHANGEMENT R√âEL
+                // ==========================
+                if (company.CityId != newCityId)
+                {
+                    await _companyEventLogService.LogRelationEventAsync(
+                        company.Id,
+                        CompanyEventLogService.EventNames.CityChanged,
+                        company.CityId,
+                        company.City?.CityName,
+                        newCityId,
+                        newCityName,
+                        currentUserId
+                    );
+
+                    company.CityId = newCityId;
+                }
+
+            END_CITY_UPDATE:;
             }
 
-            // --- mise ‡ jour CNSS ----
+
+            // --- mise √† jour CNSS ----
             if (!string.IsNullOrWhiteSpace(dto.CnssNumber))
             {
                 var cnssExists = await _db.Companies
-                    .AnyAsync(c => 
-                    c.CnssNumber == dto.CnssNumber.Trim() && 
-                    c.DeletedAt == null && 
+                    .AnyAsync(c =>
+                    c.CnssNumber == dto.CnssNumber.Trim() &&
+                    c.DeletedAt == null &&
                     c.Id != id
                     );
 
                 if (cnssExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce numÈro CNSS" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce num√©ro CNSS" });
 
                 var cnssTrim = dto.CnssNumber!.Trim();
 
                 if (cnssTrim != company.CnssNumber)
+                {
+                    await _companyEventLogService.LogEventAsync(
+                        company.Id,
+                        "Cnss_Changed",
+                        company.CnssNumber,
+                        null,
+                        cnssTrim,
+                        null,
+                        currentUserId
+                    );
+
                     company.CnssNumber = cnssTrim;
+                }
             }
 
-            // ---- mise ‡ jour ice ----
+            // ---- mise √† jour ice ----
             if (!string.IsNullOrWhiteSpace(dto.IceNumber))
             {
                 var iceExists = await _db.Companies
-                    .AnyAsync(c => 
-                    c.IceNumber == dto.IceNumber.Trim() && 
-                    c.DeletedAt == null && 
+                    .AnyAsync(c =>
+                    c.IceNumber == dto.IceNumber.Trim() &&
+                    c.DeletedAt == null &&
                     c.Id != id
                     );
 
                 if (iceExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce numÈro ICE" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce num√©ro ICE" });
 
                 var iceTrim = dto.IceNumber!.Trim();
 
                 if (iceTrim != company.IceNumber)
+                {
+                    await _companyEventLogService.LogEventAsync(
+                        company.Id,
+                        "Ice_Changed",
+                        company.IceNumber,
+                        null,
+                        iceTrim,
+                        null,
+                        currentUserId
+                    );
+
                     company.IceNumber = iceTrim;
+                }
             }
 
-            // ----- Mise ‡ Jour IfNumber
+            // ----- Mise √† Jour IfNumber
             if (!string.IsNullOrWhiteSpace(dto.IfNumber))
             {
                 var ifExists = await _db.Companies
@@ -771,13 +1207,25 @@ namespace payzen_backend.Controllers.Company
                     c.Id != id
                     );
                 if (ifExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce numÈro IF" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce num√©ro IF" });
                 var ifTrim = dto.IfNumber!.Trim();
                 if (ifTrim != company.IfNumber)
+                {
+                    await _companyEventLogService.LogEventAsync(
+                        company.Id,
+                        "If_Changed",
+                        company.IfNumber,
+                        null,
+                        ifTrim,
+                        null,
+                        currentUserId
+                    );
+
                     company.IfNumber = ifTrim;
+                }
             }
 
-            // mise ‡ jour RC
+            // mise √† jour RC
             if (!string.IsNullOrWhiteSpace(dto.RcNumber))
             {
                 var rcExists = await _db.Companies
@@ -788,25 +1236,62 @@ namespace payzen_backend.Controllers.Company
                     );
 
                 if (rcExists)
-                    return Conflict(new { Message = "Une autre entreprise utilise dÈj‡ ce numÈro RC" });
+                    return Conflict(new { Message = "Une autre entreprise utilise d√©j√† ce num√©ro RC" });
 
                 var rcTrim = dto.RcNumber!.Trim();
 
                 if (rcTrim != company.RcNumber)
+                {
+                    await _companyEventLogService.LogEventAsync(
+                        company.Id,
+                        "Rc_Changed",
+                        company.RcNumber,
+                        null,
+                        rcTrim,
+                        null,
+                        currentUserId
+                    );
+
                     company.RcNumber = rcTrim;
+                }
             }
 
-            // Mise ‡ jour form juridique
+            // Mise √† jour form juridique
             if (!string.IsNullOrEmpty(dto.LegalForm))
             {
                 var legalFormTrim = dto.LegalForm!.Trim();
                 if (legalFormTrim != company.LegalForm)
+                {
+                    await _companyEventLogService.LogEventAsync(
+                        company.Id,
+                        "LegalForm_Changed",
+                        company.LegalForm,
+                        null,
+                        legalFormTrim,
+                        null,
+                        currentUserId
+                    );
+
                     company.LegalForm = legalFormTrim;
+                }
             }
 
-            // Mise ‡ jour date de fondation
+            // Mise √† jour date de fondation
             if (dto.FoundingDate.HasValue && dto.FoundingDate.Value != company.FoundingDate)
             {
+                var oldVal = company.FoundingDate?.ToString("o");
+                var newVal = dto.FoundingDate.Value.ToString("o");
+
+                await _companyEventLogService.LogEventAsync(
+                    company.Id,
+                    "FoundingDate_Changed",
+                    oldVal,
+                    null,
+                    newVal,
+                    null,
+                    currentUserId
+                );
+
                 company.FoundingDate = dto.FoundingDate.Value;
             }
             // ===== Audit =====
@@ -817,6 +1302,11 @@ namespace payzen_backend.Controllers.Company
                 .Where(p => p.IsModified)
                 .Select(p => $"{p.Metadata.Name} => {p.CurrentValue}")
                 .ToList();
+
+            // Log before saving
+            Console.WriteLine("Changes to save:");
+            foreach (var change in changes)
+                Console.WriteLine(change);
 
             await _db.SaveChangesAsync();
 
@@ -854,5 +1344,113 @@ namespace payzen_backend.Controllers.Company
             return Ok(result);
         }
 
+        /// <summary>
+        /// R√©cup√®re l'historique des modifications d'une entreprise (company) uniquement (sans les events employee).
+        /// </summary>
+        /// <param name="companyId"></param>
+        /// <returns></returns>
+        [HttpGet("{companyId}/history")]
+        public async Task<IActionResult> GetCompanyHistory(int companyId)
+        {
+            // V√©rifier existence de l'entreprise
+            var exists = await _db.Companies.AsNoTracking().AnyAsync(c => c.Id == companyId && c.DeletedAt == null);
+            if (!exists)
+                return NotFound(new { Message = "Entreprise non trouv√©e" });
+
+            // R√©cup√©rer uniquement les events company
+            var companyEvents = await _db.CompanyEventLogs
+                .AsNoTracking()
+                .Where(e => e.companyId == companyId)
+                .Select(e => new
+                {
+                    EventName = e.eventName,
+                    e.oldValue,
+                    e.oldValueId,
+                    e.newValue,
+                    e.newValueId,
+                    CreatedAt = e.createdAt,
+                    CreatedBy = e.createdBy,
+                    EmployeeId = e.employeeId,
+                    Source = "company"
+                })
+                .OrderByDescending(e => e.CreatedAt)
+                .ToListAsync();
+
+            // Si aucun event, retourner liste vide
+            if (!companyEvents.Any())
+                return Ok(new List<CompanyHistoryDto>());
+
+            // R√©cup√©rer les cr√©ateurs (users) et leurs r√¥les pour ces events
+            var creatorIds = companyEvents.Select(e => e.CreatedBy).Where(id => id != 0).Distinct().ToList();
+
+            var users = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Employee)
+                .Where(u => creatorIds.Contains(u.Id))
+                .ToListAsync();
+
+            var usersRoles = await _db.UsersRoles
+                .AsNoTracking()
+                .Include(ur => ur.Role)
+                .Where(ur => creatorIds.Contains(ur.UserId))
+                .ToListAsync();
+
+            var userRoleMap = usersRoles
+                .GroupBy(ur => ur.UserId)
+                .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.Role?.Name).Where(n => n != null)));
+
+            var userMap = users.ToDictionary(u => u.Id, u => u);
+
+            // Mapper vers CompanyHistoryDto (qui contient : qui a fait quoi et quand)
+            var history = companyEvents.Select(e =>
+            {
+                // qui
+                string? name = null;
+                string? role = null;
+                if (userMap.TryGetValue(e.CreatedBy, out var u))
+                {
+                    name = u.Employee != null ? $"{u.Employee.FirstName} {u.Employee.LastName}" : u.Email;
+                    userRoleMap.TryGetValue(u.Id, out role);
+                }
+
+                // quoi (titre) = eventName ; description = old -> new si pr√©sent
+                var title = e.EventName ?? "√âv√©nement";
+                var description = BuildDescription(e.EventName, e.oldValue, e.newValue);
+
+                return new CompanyHistoryDto
+                {
+                    Type = e.Source,
+                    Title = title,
+                    Date = e.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Description = description,
+                    Details = new Dictionary<string, object?>
+                    {
+                        ["oldValue"] = e.oldValue,
+                        ["oldValueId"] = e.oldValueId,
+                        ["newValue"] = e.newValue,
+                        ["newValueId"] = e.newValueId,
+                        ["employeeId"] = e.EmployeeId,
+                        ["source"] = e.Source
+                    },
+                    ModifiedBy = name == null && role == null ? null : new ModifiedByDto { Name = name, Role = role },
+                    Timestamp = e.CreatedAt.ToString("o")
+                };
+            })
+            .ToList();
+
+            return Ok(history);
+        }
+        // Helper local dans le contr√¥leur
+        private static string BuildDescription(string? eventName, string? oldValue, string? newValue)
+        {
+            if (!string.IsNullOrEmpty(oldValue) || !string.IsNullOrEmpty(newValue))
+            {
+                var oldVal = string.IsNullOrEmpty(oldValue) ? "<vide>" : oldValue;
+                var newVal = string.IsNullOrEmpty(newValue) ? "<vide>" : newValue;
+                return $"{eventName ?? "√âv√©nement"} : {oldVal} ‚Üí {newVal}";
+            }
+
+            return eventName ?? "√âv√©nement";
+        }
     }
 }

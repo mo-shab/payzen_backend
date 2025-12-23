@@ -14,10 +14,10 @@ namespace payzen_backend.Models.Company.Dtos
 
         [EmailAddress]
         [StringLength(500)]
-        public string? CompanyEmail { get; set; }
+        public string? email { get; set; }
 
         [StringLength(20)]
-        public string? CompanyPhoneNumber { get; set; }
+        public string? phoneNumber { get; set; }
 
         [StringLength(10)]
         public string? CountryPhoneCode { get; set; }

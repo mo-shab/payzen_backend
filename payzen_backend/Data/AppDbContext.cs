@@ -48,6 +48,7 @@ namespace payzen_backend.Data
 
         // =========== Tables Events Log ================
         public DbSet<EmployeeEventLog> EmployeeEventLogs { get; set; }
+        public DbSet<CompanyEventLog> CompanyEventLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -574,6 +575,25 @@ namespace payzen_backend.Data
                 entity.HasOne<Employee>()
                     .WithMany()
                     .HasForeignKey(eel => eel.employeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CompanyEventLog>(entity =>
+            {
+                entity.ToTable("CompanyEventLog");
+                entity.HasKey(cel => cel.Id);
+                
+                entity.Property(cel => cel.eventName).IsRequired().HasMaxLength(200);
+                entity.Property(cel => cel.oldValue).HasMaxLength(1000);
+                entity.Property(cel => cel.newValue).HasMaxLength(1000);
+                entity.Property(cel => cel.createdAt).IsRequired();
+                entity.HasOne<Users>()
+                    .WithMany()
+                    .HasForeignKey(cel => cel.createdBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Company>()
+                    .WithMany()
+                    .HasForeignKey(cel => cel.companyId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
