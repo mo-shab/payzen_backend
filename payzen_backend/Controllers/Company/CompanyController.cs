@@ -540,22 +540,43 @@ namespace payzen_backend.Controllers.Company
         /// Crée une nouvelle entreprise de la part d'un expert comptable
         /// </summary>
         [HttpPost("create-by-expert")]
+        //[HasPermission("CREATE_COMPANY_EXPERT")]
         public async Task<ActionResult<CompanyCreateResponseDto>> CreateCompanyByExpert([FromBody] CompanyCreateByExpertDto dto)
         {
+            Console.WriteLine("=================Call create by exper route");
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            Console.WriteLine("Pass the Model state Validation");
+            Console.WriteLine(dto);
 
             // Vérifier que le cabinet expert gestionnaire existe et est bien un cabinet
             var managingCompany = await _db.Companies
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == dto.ManagedByCompanyId && c.DeletedAt == null);
 
+            Console.WriteLine($"Managin Company exist : {managingCompany}");
+
             var currentUserId = User.GetUserId();
 
             // Vérifier que l'utilisateur courant appartient au cabinet expert gestionnaire
             var currentUser = await _db.Users.FindAsync(currentUserId);
-            if (currentUser == null || (await _db.Employees.FindAsync(currentUser.EmployeeId))?.CompanyId != dto.ManagedByCompanyId)
-                return Forbid();
+            Console.WriteLine($"Current User ID : {currentUserId}");
+
+            // Récupérer l'employé lié au user (si présent) en toute sécurité
+            var currentEmployee = currentUser != null && currentUser.EmployeeId.HasValue
+                ? await _db.Employees.FindAsync(currentUser.EmployeeId.Value)
+                : null;
+            Console.WriteLine($"currentEmployee : {currentEmployee}");
+
+            if (currentUser == null || currentEmployee == null || currentEmployee.CompanyId != dto.ManagedByCompanyId)
+            {
+                Console.WriteLine("L'utilisateur courant n'appartient pas au cabinet gestionnaire ou est invalide");
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    Message = "L'utilisateur courant n'appartient pas au cabinet gestionnaire ou est invalide"
+                });
+            }
 
             if (managingCompany == null)
                 return NotFound(new { Message = "Cabinet expert gestionnaire introuvable" });

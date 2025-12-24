@@ -5,6 +5,8 @@
         public int Id { get; set; }
         public required string Name { get; set; }
         public required string Description { get; set; }
+        public string? Resource { get; set; } = string.Empty;
+        public string? Action { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? UpdatedAt { get; set; }
         public DateTimeOffset? DeletedAt { get; set; }

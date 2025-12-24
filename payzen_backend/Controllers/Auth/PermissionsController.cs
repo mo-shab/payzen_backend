@@ -34,6 +34,8 @@ namespace payzen_backend.Controllers.Auth
                 Id = p.Id,
                 Name = p.Name,
                 Description = p.Description,
+                Resource = p.Resource,
+                Action = p.Action,
                 CreatedAt = p.CreatedAt.DateTime
             });
 
@@ -59,6 +61,7 @@ namespace payzen_backend.Controllers.Auth
                 Id = permission.Id,
                 Name = permission.Name,
                 Description = permission.Description,
+                Resource = permission.Resource,
                 CreatedAt = permission.CreatedAt.DateTime
             };
 
@@ -85,6 +88,8 @@ namespace payzen_backend.Controllers.Auth
             {
                 Name = dto.Name,
                 Description = dto.Description,
+                Resource = dto.Resource,
+                Action = dto.Action,
                 CreatedAt = DateTimeOffset.UtcNow,
                 CreatedBy = userId
             };
@@ -97,6 +102,8 @@ namespace payzen_backend.Controllers.Auth
                 Id = permission.Id,
                 Name = permission.Name,
                 Description = permission.Description,
+                Resource = permission.Resource,
+                Action = permission.Action,
                 CreatedAt = permission.CreatedAt.DateTime
             };
 

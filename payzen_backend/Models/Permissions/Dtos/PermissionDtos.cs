@@ -14,6 +14,8 @@ namespace payzen_backend.Models.Permissions.Dtos
         [Required(ErrorMessage = "La description est requise")]
         [StringLength(500, MinimumLength = 10, ErrorMessage = "La description doit contenir entre 10 et 500 caractères")]
         public required string Description { get; set; }
+        public string? Action { get; set; }
+        public string? Resource { get; set; }
     }
 
     // DTO pour lire une permission (réponse API)
@@ -24,6 +26,8 @@ namespace payzen_backend.Models.Permissions.Dtos
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string? Resource { get; set; } = string.Empty;
+        public string? Action { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 

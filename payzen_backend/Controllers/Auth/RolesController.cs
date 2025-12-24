@@ -155,7 +155,55 @@ namespace payzen_backend.Controllers.Auth
 
             return Ok(readDto);
         }
+        /// <summary>
+        /// Récupère les utilisateurs assignés à un rôle (GET /api/roles/{roleId}/users)
+        /// </summary>
+        [HttpGet("{roleId}/users")]
+        public async Task<ActionResult<RoleUsersDto>> GetUsersByRole(int roleId)
+        {
+            // Vérifier que le rôle existe et n'est pas supprimé
+            var role = await _db.Roles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.DeletedAt == null);
 
+            if (role == null)
+                return NotFound(new { Message = "Rôle non trouvé" });
+
+            // Requête : UsersRoles -> Users -> Employees -> Companies (left joins)
+            var users = await (from ur in _db.UsersRoles.AsNoTracking()
+                               where ur.RoleId == roleId && ur.DeletedAt == null
+                               join u in _db.Users.AsNoTracking().Where(u => u.DeletedAt == null)
+                                   on ur.UserId equals u.Id into uu
+                               from u in uu.DefaultIfEmpty()
+                               join e in _db.Employees.AsNoTracking().Where(e => e.DeletedAt == null)
+                                   on u.EmployeeId equals e.Id into ee
+                               from e in ee.DefaultIfEmpty()
+                               join c in _db.Companies.AsNoTracking().Where(c => c.DeletedAt == null)
+                                   on e.CompanyId equals c.Id into cc
+                               from c in cc.DefaultIfEmpty()
+                               select new UserInRoleDto
+                               {
+                                   UserId = u != null ? u.Id : 0,
+                                   Username = u != null ? (u.Username ?? string.Empty) : null,
+                                   Email = u != null ? u.Email : null,
+                                   EmployeeId = u != null ? u.EmployeeId : null,
+                                   EmployeeFirstName = e != null ? e.FirstName : null,
+                                   EmployeeLastName = e != null ? e.LastName : null,
+                                   CompanyId = e != null ? (int?)e.CompanyId : null,
+                                   CompanyName = c != null ? c.CompanyName : null,
+                                   AssignedAt = ur.CreatedAt
+                               })
+                              .ToListAsync();
+
+            var result = new RoleUsersDto
+            {
+                RoleId = role.Id,
+                RoleName = role.Name,
+                Users = users
+            };
+
+            return Ok(result);
+        }
         /// <summary>
         /// Supprime un rôle (soft delete)
         /// </summary>
